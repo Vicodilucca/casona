@@ -8,17 +8,17 @@ export default async function Dashboard() {
   const { desde, hasta } = getCurrentMonth();
 
   const [ingresosMes, gastosMes, gastos, saldosPendientes] = await Promise.all([
-    getSumIngresos(desde, hasta),
-    getSumGastos(desde, hasta),
-    getGastos(),
-    getReservasSaldoPendiente(),
+    getSumIngresos(desde, hasta).catch(() => 0),
+    getSumGastos(desde, hasta).catch(() => 0),
+    getGastos().catch(() => []),
+    getReservasSaldoPendiente().catch(() => []),
   ]);
 
   const balanceMes = ingresosMes - gastosMes;
   const ultGastos = gastos.slice(0, 5);
 
   const hoy = new Date().toISOString().split('T')[0];
-  const proximas = (await getReservas(hoy, '2099-12-31'))
+  const proximas = (await getReservas(hoy, '2099-12-31').catch(() => []))
     .filter((r) => r.estado === 'confirmada' && r.fecha_inicio >= hoy)
     .slice(0, 4);
 
