@@ -2,10 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import Link from 'next/link';
 import { formatARS, formatDate } from '@/lib/utils';
 import { SOCIOS } from '@/lib/types';
 import type { Reserva, Gasto } from '@/lib/types';
-import { TrendingUp, TrendingDown, Wallet, ArrowRightLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, ArrowRightLeft, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 
 interface EntradaIngreso {
   reserva: Reserva;
@@ -81,9 +82,18 @@ export default function ReportesClient({ data }: { data: ReportData }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Reportes</h1>
-        <p className="text-sm text-slate-500">Análisis financiero del período</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Reportes</h1>
+          <p className="text-sm text-slate-500">Análisis financiero del período</p>
+        </div>
+        <Link
+          href={`/resumen-ejecutivo?anio=${yearActual}`}
+          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+        >
+          <FileText size={15} />
+          Resumen ejecutivo PDF
+        </Link>
       </div>
 
       {/* Selector período */}
