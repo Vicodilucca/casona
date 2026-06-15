@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getGastos } from '@/lib/db';
 import GastosClient from './GastosClient';
 

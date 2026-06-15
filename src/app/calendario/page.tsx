@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getReservas } from '@/lib/db';
 import CalendarioClient from './CalendarioClient';
 

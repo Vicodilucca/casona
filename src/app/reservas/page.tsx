@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getReservas } from '@/lib/db';
 import ReservasClient from './ReservasClient';
 

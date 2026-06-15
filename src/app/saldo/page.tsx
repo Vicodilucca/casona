@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getReservasSaldoPendiente } from '@/lib/db';
 import SaldoClient from './SaldoClient';
 

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { notFound } from 'next/navigation';
 import { getReservaById } from '@/lib/db';
 import ContratoPrint from './ContratoPrint';

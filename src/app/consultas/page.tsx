@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getConsultas } from '@/lib/db';
 import ConsultasClient from './ConsultasClient';
 

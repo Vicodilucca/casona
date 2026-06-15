@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getReservas, getGastos, getSumIngresos, getSumGastos, getReservasSaldoPendiente } from '@/lib/db';
 import { formatARS, formatDate, getCurrentMonth, getNights } from '@/lib/utils';
 import Link from 'next/link';
