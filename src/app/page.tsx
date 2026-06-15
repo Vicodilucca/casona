@@ -3,22 +3,24 @@ import { formatARS, formatDate, getCurrentMonth, getNights } from '@/lib/utils';
 import Link from 'next/link';
 import { TrendingUp, TrendingDown, Wallet, CircleDollarSign, ArrowRight } from 'lucide-react';
 
-export default function Dashboard() {
+export default async function Dashboard() {
   const { desde, hasta } = getCurrentMonth();
 
-  const ingresosMes = getSumIngresos(desde, hasta);
-  const gastosMes = getSumGastos(desde, hasta);
+  const [ingresosMes, gastosMes, gastos, saldosPendientes] = await Promise.all([
+    getSumIngresos(desde, hasta),
+    getSumGastos(desde, hasta),
+    getGastos(),
+    getReservasSaldoPendiente(),
+  ]);
+
   const balanceMes = ingresosMes - gastosMes;
+  const ultGastos = gastos.slice(0, 5);
 
-  const gastos = getGastos().slice(0, 5);
-
-  // Próximas reservas (desde hoy)
   const hoy = new Date().toISOString().split('T')[0];
-  const proximas = getReservas(hoy, '2099-12-31')
+  const proximas = (await getReservas(hoy, '2099-12-31'))
     .filter((r) => r.estado === 'confirmada' && r.fecha_inicio >= hoy)
     .slice(0, 4);
 
-  const saldosPendientes = getReservasSaldoPendiente();
   const totalSaldoPendiente = saldosPendientes.reduce(
     (sum, r) => sum + (r.saldo_pendiente ?? 0), 0
   );
@@ -138,11 +140,11 @@ export default function Dashboard() {
               Ver todos <ArrowRight size={12} />
             </Link>
           </div>
-          {gastos.length === 0 ? (
+          {ultGastos.length === 0 ? (
             <p className="text-sm text-slate-400 py-4 text-center">No hay gastos registrados</p>
           ) : (
             <div className="space-y-2">
-              {gastos.map((g) => (
+              {ultGastos.map((g) => (
                 <div key={g.id} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
                   <div>
                     <p className="text-sm font-medium text-slate-800">{g.descripcion}</p>

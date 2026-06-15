@@ -6,10 +6,11 @@ import {
   getSumGastosPorPagador,
   getSumIngresosPorSocio,
 } from '@/lib/db';
+import type { Reserva } from '@/lib/types';
 import ReportesClient from './ReportesClient';
 import { getCurrentMonth } from '@/lib/utils';
 
-export default function ReportesPage({
+export default async function ReportesPage({
   searchParams,
 }: {
   searchParams: { desde?: string; hasta?: string };
@@ -18,18 +19,21 @@ export default function ReportesPage({
   const desde = searchParams.desde ?? defDesde;
   const hasta = searchParams.hasta ?? defHasta;
 
-  const ingresos = getSumIngresos(desde, hasta);
-  const gastosTotales = getSumGastos(desde, hasta);
-  const gastosPorPagador = getSumGastosPorPagador(desde, hasta);
-  const ingresosPorSocio = getSumIngresosPorSocio(desde, hasta);
+  const [ingresos, gastosTotales, gastosPorPagador, ingresosPorSocio, todasReservas, gastos] =
+    await Promise.all([
+      getSumIngresos(desde, hasta),
+      getSumGastos(desde, hasta),
+      getSumGastosPorPagador(desde, hasta),
+      getSumIngresosPorSocio(desde, hasta),
+      getReservas(),
+      getGastos(desde, hasta),
+    ]);
+
   const neto = ingresos - gastosTotales;
+  const reservasConfirmadas = todasReservas.filter((r) => r.estado === 'confirmada');
 
-  const todasReservas = getReservas().filter((r) => r.estado === 'confirmada');
-  const gastos = getGastos(desde, hasta);
-
-  // Entradas de ingreso: una por evento de cobro (anticipo o saldo), igual que getSumIngresos
-  const entradasIngreso: { reserva: ReturnType<typeof getReservas>[0]; tipo: 'anticipo' | 'saldo'; fecha: string; yo: number; socio: number }[] = [];
-  for (const r of todasReservas) {
+  const entradasIngreso: { reserva: Reserva; tipo: 'anticipo' | 'saldo'; fecha: string; yo: number; socio: number }[] = [];
+  for (const r of reservasConfirmadas) {
     if (r.fecha_reserva >= desde && r.fecha_reserva <= hasta && ((r.monto_yo ?? 0) + (r.monto_socio ?? 0) > 0)) {
       entradasIngreso.push({ reserva: r, tipo: 'anticipo', fecha: r.fecha_reserva, yo: r.monto_yo ?? 0, socio: r.monto_socio ?? 0 });
     }
@@ -40,7 +44,6 @@ export default function ReportesPage({
   entradasIngreso.sort((a, b) => a.fecha.localeCompare(b.fecha));
   const reservasUnicas = new Set(entradasIngreso.map((e) => e.reserva.id)).size;
 
-  // Partes teóricas
   const miParteIngresos = ingresos * 0.65;
   const socioParteIngresos = ingresos * 0.35;
   const miParteGastos = gastosTotales * 0.65;
@@ -48,18 +51,13 @@ export default function ReportesPage({
   const miNeto = miParteIngresos - miParteGastos;
   const socioNeto = socioParteIngresos - socioParteGastos;
 
-  // Lo que realmente cobró cada uno y lo que pagó en gastos
   const yoCobre = ingresosPorSocio.yo;
   const socioCobro = ingresosPorSocio.socio;
   const yoPague = gastosPorPagador.yo;
   const socioPago = gastosPorPagador.socio;
 
-  // Posición real de cada socio (lo cobrado - lo pagado en gastos)
   const miPosicionReal = yoCobre - yoPague;
   const socioPosicionReal = socioCobro - socioPago;
-
-  // Lo que cada uno debería haber terminado con (neto teórico)
-  // Saldo: positivo = el socio me debe; negativo = yo le debo al socio
   const saldo = miNeto - miPosicionReal;
 
   const data = {

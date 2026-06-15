@@ -32,7 +32,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function ResumenEjecutivoPage({
+export default async function ResumenEjecutivoPage({
   searchParams,
 }: {
   searchParams: { anio?: string };
@@ -41,25 +41,28 @@ export default function ResumenEjecutivoPage({
   const desde = `${anio}-01-01`;
   const hasta = `${anio}-12-31`;
 
-  const ingresos = getSumIngresos(desde, hasta);
-  const gastosTotales = getSumGastos(desde, hasta);
+  const [ingresos, gastosTotales, gastos, gastosPorPagador, ingresosPorSocio, reservasAnio] =
+    await Promise.all([
+      getSumIngresos(desde, hasta),
+      getSumGastos(desde, hasta),
+      getGastos(desde, hasta),
+      getSumGastosPorPagador(desde, hasta),
+      getSumIngresosPorSocio(desde, hasta),
+      getReservas(desde, hasta),
+    ]);
+
   const neto = ingresos - gastosTotales;
-  const gastos = getGastos(desde, hasta);
-  const gastosPorPagador = getSumGastosPorPagador(desde, hasta);
-  const ingresosPorSocio = getSumIngresosPorSocio(desde, hasta);
+  const reservasConfirmadas = reservasAnio.filter((r) => r.estado === 'confirmada');
 
-  const reservasAnio = getReservas(desde, hasta).filter((r) => r.estado === 'confirmada');
-
-  const meses = Array.from({ length: 12 }, (_, i) => {
-    const mes = String(i + 1).padStart(2, '0');
-    const d = `${anio}-${mes}-01`;
-    const h = `${anio}-${mes}-${String(new Date(anio, i + 1, 0).getDate()).padStart(2, '0')}`;
-    return {
-      nombre: MESES_CORTO[i],
-      ingreso: getSumIngresos(d, h),
-      gasto: getSumGastos(d, h),
-    };
-  });
+  const meses = await Promise.all(
+    Array.from({ length: 12 }, async (_, i) => {
+      const mes = String(i + 1).padStart(2, '0');
+      const d = `${anio}-${mes}-01`;
+      const h = `${anio}-${mes}-${String(new Date(anio, i + 1, 0).getDate()).padStart(2, '0')}`;
+      const [ingreso, gasto] = await Promise.all([getSumIngresos(d, h), getSumGastos(d, h)]);
+      return { nombre: MESES_CORTO[i], ingreso, gasto };
+    }),
+  );
 
   const gastosPorCategoria = gastos.reduce<Record<string, number>>((acc, g) => {
     acc[g.categoria] = (acc[g.categoria] ?? 0) + g.monto;
@@ -96,7 +99,6 @@ export default function ResumenEjecutivoPage({
         }
       `}</style>
 
-      {/* Barra de acción — oculta al imprimir */}
       <div className="print:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <a href="/reportes" className="text-sm text-slate-500 hover:text-slate-800">← Reportes</a>
@@ -118,10 +120,8 @@ export default function ResumenEjecutivoPage({
         <PrintButton />
       </div>
 
-      {/* Documento */}
       <div className="max-w-2xl mx-auto px-4 py-8 print:py-0 print:max-w-none print:px-0">
 
-        {/* Encabezado */}
         <div className="flex items-start justify-between mb-6 print:mb-4">
           <div className="flex items-center gap-3">
             <Image
@@ -142,13 +142,12 @@ export default function ResumenEjecutivoPage({
           </div>
         </div>
 
-        {/* KPIs */}
         <div className="grid grid-cols-4 gap-3 mb-6 print:mb-4">
           {[
             { label: 'Ingresos totales', value: formatARS(ingresos), color: 'text-green-700', bg: 'bg-green-50 border-green-100' },
             { label: 'Gastos totales', value: formatARS(gastosTotales), color: 'text-red-700', bg: 'bg-red-50 border-red-100' },
             { label: 'Balance neto', value: formatARS(neto), color: neto >= 0 ? 'text-blue-700' : 'text-red-700', bg: neto >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100' },
-            { label: 'Reservas', value: String(reservasAnio.length), color: 'text-violet-700', bg: 'bg-violet-50 border-violet-100' },
+            { label: 'Reservas', value: String(reservasConfirmadas.length), color: 'text-violet-700', bg: 'bg-violet-50 border-violet-100' },
           ].map(({ label, value, color, bg }) => (
             <div key={label} className={`rounded-xl border p-3 print:p-2 ${bg}`}>
               <p className="text-[10px] text-slate-500 mb-1">{label}</p>
@@ -157,10 +156,8 @@ export default function ResumenEjecutivoPage({
           ))}
         </div>
 
-        {/* Columnas */}
         <div className="grid grid-cols-2 gap-5 print:gap-4">
 
-          {/* Columna izquierda: tabla mensual */}
           <div>
             <Section title="Ingresos y gastos por mes">
               <table className="w-full text-xs print:text-[10px]">
@@ -200,9 +197,7 @@ export default function ResumenEjecutivoPage({
             </Section>
           </div>
 
-          {/* Columna derecha */}
           <div>
-            {/* Gastos por categoría */}
             {Object.keys(gastosPorCategoria).length > 0 && (
               <Section title="Gastos por categoría">
                 {Object.entries(gastosPorCategoria)
@@ -224,7 +219,6 @@ export default function ResumenEjecutivoPage({
               </Section>
             )}
 
-            {/* Distribución entre socios */}
             <Section title="Distribución entre socios">
               <div className="py-1">
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">María Victoria (65%)</p>
@@ -248,7 +242,6 @@ export default function ResumenEjecutivoPage({
           </div>
         </div>
 
-        {/* Liquidación — ancho completo */}
         <div className={`rounded-xl border-2 p-4 print:p-3 mb-6 print:mb-4 ${
           saldo === 0 ? 'border-green-200 bg-green-50' :
           saldo > 0  ? 'border-green-200 bg-green-50' :

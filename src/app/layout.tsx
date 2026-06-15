@@ -8,9 +8,12 @@ export const metadata: Metadata = {
   description: 'Plataforma de gestión de alquiler temporario',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const saldoPendienteCount = getReservasSaldoPendiente().length;
-  const consultasPendienteCount = getConsultasPendienteCount();
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const [saldosPendientes, consultasPendienteCount] = await Promise.all([
+    getReservasSaldoPendiente(),
+    getConsultasPendienteCount(),
+  ]);
+  const saldoPendienteCount = saldosPendientes.length;
   return (
     <html lang="es">
       <body>

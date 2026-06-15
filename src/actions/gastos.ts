@@ -5,21 +5,21 @@ import { createGasto, updateGasto, deleteGasto } from '@/lib/db';
 import type { Gasto } from '@/lib/types';
 
 export async function agregarGasto(data: Omit<Gasto, 'id' | 'created_at'>) {
-  createGasto(data);
+  await createGasto(data);
   revalidatePath('/');
   revalidatePath('/gastos');
   revalidatePath('/reportes');
 }
 
 export async function editarGasto(id: number, data: Omit<Gasto, 'id' | 'created_at'>) {
-  updateGasto(id, data);
+  await updateGasto(id, data);
   revalidatePath('/');
   revalidatePath('/gastos');
   revalidatePath('/reportes');
 }
 
 export async function eliminarGasto(id: number) {
-  deleteGasto(id);
+  await deleteGasto(id);
   revalidatePath('/');
   revalidatePath('/gastos');
   revalidatePath('/reportes');

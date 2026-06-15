@@ -5,21 +5,21 @@ import { createReserva, updateReserva, deleteReserva, marcarSaldoPagado } from '
 import type { Reserva } from '@/lib/types';
 
 export async function agregarReserva(data: Omit<Reserva, 'id' | 'created_at'>) {
-  createReserva(data);
+  await createReserva(data);
   revalidatePath('/');
   revalidatePath('/reservas');
   revalidatePath('/reportes');
 }
 
 export async function editarReserva(id: number, data: Omit<Reserva, 'id' | 'created_at'>) {
-  updateReserva(id, data);
+  await updateReserva(id, data);
   revalidatePath('/');
   revalidatePath('/reservas');
   revalidatePath('/reportes');
 }
 
 export async function eliminarReserva(id: number) {
-  deleteReserva(id);
+  await deleteReserva(id);
   revalidatePath('/');
   revalidatePath('/reservas');
   revalidatePath('/reportes');
@@ -33,7 +33,7 @@ export async function pagarSaldo(
   cotizacionSaldo: number | null,
   montoLuz: number | null = null,
 ) {
-  marcarSaldoPagado(id, fecha, saldoYo, saldoSocio, cotizacionSaldo, montoLuz);
+  await marcarSaldoPagado(id, fecha, saldoYo, saldoSocio, cotizacionSaldo, montoLuz);
   revalidatePath('/');
   revalidatePath('/reservas');
   revalidatePath('/saldo');

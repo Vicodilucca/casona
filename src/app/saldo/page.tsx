@@ -1,7 +1,7 @@
 import { getReservasSaldoPendiente } from '@/lib/db';
 import SaldoClient from './SaldoClient';
 
-export default function SaldoPage() {
-  const pendientes = getReservasSaldoPendiente();
+export default async function SaldoPage() {
+  const pendientes = await getReservasSaldoPendiente();
   return <SaldoClient pendientes={pendientes} />;
 }
