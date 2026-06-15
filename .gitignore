@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+tsconfig.tsbuildinfo
+
+# Environment variables (contain API keys and passwords)
+.env
+.env.local
+.env*.local
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Data exports
+quinta-data.json
+
+# Misnamed artifact folder
+{src
+
+# OS files
+.DS_Store
