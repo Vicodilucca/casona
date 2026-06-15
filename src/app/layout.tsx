@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [saldosPendientes, consultasPendienteCount] = await Promise.all([
-    getReservasSaldoPendiente(),
-    getConsultasPendienteCount(),
+    getReservasSaldoPendiente().catch(() => []),
+    getConsultasPendienteCount().catch(() => 0),
   ]);
   const saldoPendienteCount = saldosPendientes.length;
   return (

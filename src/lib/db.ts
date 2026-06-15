@@ -1,6 +1,10 @@
 import { Pool } from 'pg';
 import pg from 'pg';
+import dns from 'dns';
 import type { Reserva, Gasto, Consulta } from './types';
+
+// Force IPv4 to avoid ENETUNREACH on IPv6-only Supabase endpoints
+dns.setDefaultResultOrder('ipv4first');
 
 pg.types.setTypeParser(1082, (val) => val);            // DATE → 'YYYY-MM-DD'
 pg.types.setTypeParser(1083, (val) => val.slice(0, 5)); // TIME → 'HH:MM'
