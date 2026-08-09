@@ -2,22 +2,27 @@
 
 import { usePathname } from 'next/navigation';
 import Navbar from './Navbar';
+import type { Rol } from '@/lib/types';
 
 export default function AdminShell({
   children,
   saldoPendienteCount,
   consultasPendienteCount,
+  usuarioNombre,
+  usuarioRol,
 }: {
   children: React.ReactNode;
   saldoPendienteCount: number;
   consultasPendienteCount: number;
+  usuarioNombre: string | null;
+  usuarioRol: Rol | null;
 }) {
   const path = usePathname();
   const isPublic =
     path === '/login' ||
     (path.startsWith('/consulta') && !path.startsWith('/consultas'));
 
-  if (isPublic) return <>{children}</>;
+  if (isPublic || !usuarioNombre || !usuarioRol) return <>{children}</>;
 
   return (
     <>
@@ -25,6 +30,8 @@ export default function AdminShell({
         <Navbar
           saldoPendienteCount={saldoPendienteCount}
           consultasPendienteCount={consultasPendienteCount}
+          usuarioNombre={usuarioNombre}
+          usuarioRol={usuarioRol}
         />
       </div>
       <main className="max-w-6xl mx-auto px-4 py-6 pb-24 md:pb-8 print:p-0 print:max-w-none">

@@ -15,20 +15,23 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/login') {
     const cookie = request.cookies.get(COOKIE_NAME)?.value;
     if (cookie) {
-      const valid = await verifySession(cookie, process.env.SESSION_SECRET!);
-      if (valid) return NextResponse.redirect(new URL('/', request.url));
+      const session = await verifySession(cookie, process.env.SESSION_SECRET!);
+      if (session) return NextResponse.redirect(new URL('/', request.url));
     }
     return NextResponse.next();
   }
 
-  // Verificar sesión para todas las demás rutas
+  // Verificar sesión para todas las demás rutas.
+  // Esto solo confirma que hay una sesión firmada y no vencida — el rol y el
+  // estado activo/inactivo del usuario se revalidan contra la base de datos
+  // en cada Server Action vía requireAuth(), que es la autorización real.
   const cookie = request.cookies.get(COOKIE_NAME)?.value;
   if (!cookie) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const valid = await verifySession(cookie, process.env.SESSION_SECRET!);
-  if (!valid) {
+  const session = await verifySession(cookie, process.env.SESSION_SECRET!);
+  if (!session) {
     const response = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.delete(COOKIE_NAME);
     return response;

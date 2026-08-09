@@ -15,8 +15,14 @@ tsconfig.tsbuildinfo
 *.db-shm
 *.db-wal
 
-# Data exports
+# Data exports / backups (contienen datos personales y financieros)
 quinta-data.json
+quinta-data-backup.json
+*.pages
+
+# Nunca commitear archivos de tokens/credenciales
+*[Tt]oken*
+*[Cc]redential*
 
 # Misnamed artifact folder
 {src

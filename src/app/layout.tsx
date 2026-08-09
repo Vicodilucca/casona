@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import AdminShell from '@/components/AdminShell';
 import { getReservasSaldoPendiente, getConsultasPendienteCount } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth-guard';
 
 export const metadata: Metadata = {
   title: 'La Casona de Río Grande — Gestión de alquiler',
@@ -10,9 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [saldosPendientes, consultasPendienteCount] = await Promise.all([
+  const [saldosPendientes, consultasPendienteCount, usuario] = await Promise.all([
     getReservasSaldoPendiente().catch(() => []),
     getConsultasPendienteCount().catch(() => 0),
+    getCurrentUser().catch(() => null),
   ]);
   const saldoPendienteCount = saldosPendientes.length;
   return (
@@ -21,6 +23,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AdminShell
           saldoPendienteCount={saldoPendienteCount}
           consultasPendienteCount={consultasPendienteCount}
+          usuarioNombre={usuario?.nombre ?? null}
+          usuarioRol={usuario?.rol ?? null}
         >
           {children}
         </AdminShell>

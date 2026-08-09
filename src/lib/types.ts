@@ -70,3 +70,27 @@ export interface Consulta {
   estado: 'pendiente' | 'contactado' | 'convertida' | 'rechazada';
   created_at: string;
 }
+
+export type Rol = 'superadmin' | 'admin';
+
+export interface Usuario {
+  id: number;
+  nombre: string;
+  email: string;
+  rol: Rol;
+  activo: boolean;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  usuario_id: number | null;
+  usuario_email: string | null;
+  accion: string;
+  entidad: string;
+  entidad_id: number | null;
+  detalle: Record<string, unknown> | null;
+  ip: string | null;
+  created_at: string;
+}

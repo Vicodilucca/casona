@@ -2,9 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CalendarDays, Receipt, BarChart3, CircleDollarSign, Menu, X, Calendar, MessageSquare } from 'lucide-react';
+import {
+  Home, CalendarDays, Receipt, BarChart3, CircleDollarSign, Menu, X, Calendar,
+  MessageSquare, Users, ShieldCheck, UserCircle,
+} from 'lucide-react';
 import { useState } from 'react';
 import LogoutButton from './LogoutButton';
+import type { Rol } from '@/lib/types';
 
 const links = [
   { href: '/', label: 'Dashboard', icon: Home },
@@ -16,15 +20,26 @@ const links = [
   { href: '/consultas', label: 'Consultas', icon: MessageSquare, badge: 'consultas' as const },
 ];
 
+const adminLinks = [
+  { href: '/usuarios', label: 'Usuarios', icon: Users, badge: undefined },
+  { href: '/auditoria', label: 'Auditoría', icon: ShieldCheck, badge: undefined },
+];
+
 export default function Navbar({
   saldoPendienteCount,
   consultasPendienteCount,
+  usuarioNombre,
+  usuarioRol,
 }: {
   saldoPendienteCount: number;
   consultasPendienteCount: number;
+  usuarioNombre: string;
+  usuarioRol: Rol;
 }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const esSuperadmin = usuarioRol === 'superadmin';
+  const visibleAdminLinks = esSuperadmin ? adminLinks : [];
 
   function getBadgeCount(badge?: 'saldo' | 'consultas') {
     if (badge === 'saldo') return saldoPendienteCount;
@@ -48,8 +63,8 @@ export default function Navbar({
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
-            {links.map(({ href, label, icon: Icon, badge }) => {
-              const count = getBadgeCount(badge);
+            {[...links, ...visibleAdminLinks].map(({ href, label, icon: Icon, badge }) => {
+              const count = getBadgeCount(badge as 'saldo' | 'consultas' | undefined);
               return (
                 <Link
                   key={href}
@@ -72,8 +87,17 @@ export default function Navbar({
             })}
           </nav>
 
-          {/* Desktop logout */}
-          <div className="hidden md:flex items-center ml-2 pl-2 border-l border-slate-200">
+          {/* Desktop user info + logout */}
+          <div className="hidden md:flex items-center gap-2 ml-2 pl-2 border-l border-slate-200">
+            <Link
+              href="/cuenta"
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 max-w-[160px] truncate"
+              title={usuarioNombre}
+            >
+              <UserCircle size={15} />
+              {usuarioNombre}
+              {esSuperadmin && <span className="text-blue-600 font-semibold">· superadmin</span>}
+            </Link>
             <LogoutButton />
           </div>
 
@@ -90,8 +114,16 @@ export default function Navbar({
         {/* Mobile dropdown */}
         {open && (
           <nav className="md:hidden border-t border-slate-100 bg-white px-4 pb-3 pt-2 flex flex-col gap-1">
-            {links.map(({ href, label, icon: Icon, badge }) => {
-              const count = getBadgeCount(badge);
+            <Link
+              href="/cuenta"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-500 hover:bg-slate-50"
+            >
+              <UserCircle size={16} />
+              {usuarioNombre}{esSuperadmin && ' · superadmin'}
+            </Link>
+            {[...links, ...visibleAdminLinks].map(({ href, label, icon: Icon, badge }) => {
+              const count = getBadgeCount(badge as 'saldo' | 'consultas' | undefined);
               return (
                 <Link
                   key={href}

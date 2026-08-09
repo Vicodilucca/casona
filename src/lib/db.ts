@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import pg from 'pg';
 import dns from 'dns';
-import type { Reserva, Gasto, Consulta } from './types';
+import type { Reserva, Gasto, Consulta, Usuario, AuditLogEntry } from './types';
 
 // Force IPv4 to avoid ENETUNREACH on IPv6-only Supabase endpoints
 dns.setDefaultResultOrder('ipv4first');
@@ -11,6 +11,7 @@ pg.types.setTypeParser(1083, (val) => val.slice(0, 5)); // TIME → 'HH:MM'
 pg.types.setTypeParser(1114, (val) => val);            // TIMESTAMP → string
 pg.types.setTypeParser(1184, (val) => val);            // TIMESTAMPTZ → string
 pg.types.setTypeParser(1700, parseFloat);              // NUMERIC → number
+pg.types.setTypeParser(20, (val) => parseInt(val, 10)); // BIGINT/BIGSERIAL → number (ids de usuarios/audit_log)
 
 const isLocal = process.env.DATABASE_URL?.includes('localhost');
 const pool = new Pool({
@@ -235,4 +236,152 @@ export async function getConsultasPendienteCount(): Promise<number> {
     `SELECT COUNT(*)::int AS count FROM consultas WHERE estado = 'pendiente'`,
   );
   return rows[0].count;
+}
+
+// ── Login rate limiting ──────────────────────────────────────────────────────
+
+export async function contarIntentosFallidosRecientes(ip: string, minutos: number): Promise<number> {
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM login_attempts
+     WHERE ip = $1 AND exitoso = false AND attempted_at > now() - ($2 || ' minutes')::interval`,
+    [ip, minutos],
+  );
+  return rows[0].count;
+}
+
+export async function registrarIntentoLogin(ip: string, exitoso: boolean): Promise<void> {
+  await pool.query('INSERT INTO login_attempts (ip, exitoso) VALUES ($1, $2)', [ip, exitoso]);
+}
+
+// ── Usuarios ──────────────────────────────────────────────────────────────────
+
+export async function getUsuarioPorEmail(email: string): Promise<(Usuario & { password_hash: string }) | null> {
+  const { rows } = await pool.query(
+    'SELECT * FROM usuarios WHERE email = $1',
+    [email.trim().toLowerCase()],
+  );
+  return rows[0] ?? null;
+}
+
+export async function getUsuarioPorId(id: number): Promise<Usuario | null> {
+  const { rows } = await pool.query<Usuario>(
+    'SELECT id, nombre, email, rol, activo, last_login_at, created_at FROM usuarios WHERE id = $1',
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+export async function getUsuarios(): Promise<Usuario[]> {
+  const { rows } = await pool.query<Usuario>(
+    'SELECT id, nombre, email, rol, activo, last_login_at, created_at FROM usuarios ORDER BY created_at ASC',
+  );
+  return rows;
+}
+
+export async function crearUsuarioDb(data: {
+  nombre: string;
+  email: string;
+  passwordHash: string;
+  rol: 'superadmin' | 'admin';
+}): Promise<Usuario> {
+  const { rows } = await pool.query<Usuario>(
+    `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
+     VALUES ($1, $2, $3, $4, true)
+     RETURNING id, nombre, email, rol, activo, last_login_at, created_at`,
+    [data.nombre.trim(), data.email.trim().toLowerCase(), data.passwordHash, data.rol],
+  );
+  return rows[0];
+}
+
+export async function editarUsuarioDb(
+  id: number,
+  data: { nombre: string; email: string; rol: 'superadmin' | 'admin' },
+): Promise<void> {
+  await pool.query(
+    'UPDATE usuarios SET nombre = $1, email = $2, rol = $3 WHERE id = $4',
+    [data.nombre.trim(), data.email.trim().toLowerCase(), data.rol, id],
+  );
+}
+
+export async function setUsuarioActivoDb(id: number, activo: boolean): Promise<void> {
+  await pool.query('UPDATE usuarios SET activo = $1 WHERE id = $2', [activo, id]);
+}
+
+export async function resetearPasswordUsuarioDb(id: number, passwordHash: string): Promise<void> {
+  await pool.query('UPDATE usuarios SET password_hash = $1 WHERE id = $2', [passwordHash, id]);
+}
+
+export async function eliminarUsuarioDb(id: number): Promise<void> {
+  await pool.query('DELETE FROM usuarios WHERE id = $1', [id]);
+}
+
+export async function registrarLoginExitoso(id: number): Promise<void> {
+  await pool.query('UPDATE usuarios SET last_login_at = now() WHERE id = $1', [id]);
+}
+
+export async function contarSuperadminsActivos(excluirId?: number): Promise<number> {
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM usuarios
+     WHERE rol = 'superadmin' AND activo = true AND id <> COALESCE($1, -1)`,
+    [excluirId ?? null],
+  );
+  return rows[0].count;
+}
+
+// ── Audit log ─────────────────────────────────────────────────────────────────
+
+export async function insertAuditLog(entry: {
+  usuarioId: number | null;
+  usuarioEmail: string | null;
+  accion: string;
+  entidad: string;
+  entidadId: number | null;
+  detalle: Record<string, unknown> | null;
+  ip: string | null;
+}): Promise<void> {
+  await pool.query(
+    `INSERT INTO audit_log (usuario_id, usuario_email, accion, entidad, entidad_id, detalle, ip)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      entry.usuarioId,
+      entry.usuarioEmail,
+      entry.accion,
+      entry.entidad,
+      entry.entidadId,
+      entry.detalle ? JSON.stringify(entry.detalle) : null,
+      entry.ip,
+    ],
+  );
+}
+
+export async function getAuditLog(filtros: {
+  usuarioId?: number;
+  entidad?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ entries: AuditLogEntry[]; total: number }> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  if (filtros.usuarioId) {
+    params.push(filtros.usuarioId);
+    conditions.push(`usuario_id = $${params.length}`);
+  }
+  if (filtros.entidad) {
+    params.push(filtros.entidad);
+    conditions.push(`entidad = $${params.length}`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const { rows: countRows } = await pool.query(`SELECT COUNT(*)::int AS count FROM audit_log ${where}`, params);
+
+  const limit = Math.min(filtros.limit ?? 50, 200);
+  const offset = filtros.offset ?? 0;
+  params.push(limit, offset);
+  const { rows } = await pool.query<AuditLogEntry>(
+    `SELECT * FROM audit_log ${where} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params,
+  );
+
+  return { entries: rows, total: countRows[0].count };
 }
