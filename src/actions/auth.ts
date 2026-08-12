@@ -43,7 +43,7 @@ export async function loginAction(formData: FormData) {
 
   if (!ok || !usuario) {
     await logAudit(null, 'login_fallido', 'usuario', usuario?.id ?? null, { email });
-    redirect('/login?error=Email+o+contraseña+incorrectos');
+    redirect(`/login?error=${encodeURIComponent('Email o contraseña incorrectos')}`);
   }
 
   const token = await signSession(usuario.id, process.env.SESSION_SECRET!);

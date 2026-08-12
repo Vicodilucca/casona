@@ -204,8 +204,8 @@ export async function marcarSaldoPagado(
        saldo_socio = $4,
        cotizacion_saldo = $5,
        monto_luz = $6,
-       saldo_pendiente = $3 + $4,
-       monto = monto_yo + monto_socio + $3 + $4
+       saldo_pendiente = $3::numeric + $4::numeric,
+       monto = monto_yo + monto_socio + $3::numeric + $4::numeric
      WHERE id = $1`,
     [id, fecha, saldoYo, saldoSocio, cotizacionSaldo, montoLuz],
   );
