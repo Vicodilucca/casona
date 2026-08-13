@@ -65,16 +65,40 @@ function B({ children }: { children: React.ReactNode }) {
   return <strong>{children}</strong>;
 }
 
+function EditField({
+  value, onChange, width = 'w-32', bold = true, type = 'text',
+}: {
+  value: string; onChange: (v: string) => void; width?: string; bold?: boolean; type?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`inline-block ${width} border border-slate-300 rounded px-1 align-baseline
+                  ${bold ? 'font-bold' : ''}
+                  focus:outline-none focus:ring-1 focus:ring-blue-400
+                  print:border-none print:rounded-none print:px-0 print:ring-0 print:bg-transparent print:w-auto
+                  ${type === 'number' ? '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''}`}
+    />
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ContratoPrint({ r }: { r: Reserva }) {
-  const personas  = (r.adultos ?? 0) + (r.ninos ?? 0);
-  const [precioInput, setPrecioInput] = useState(String(Math.round(r.monto_usd ?? 0)));
+  const [huesped, setHuesped]             = useState(r.huesped);
+  const [dni, setDni]                     = useState(r.dni);
+  const [direccionInput, setDireccionInput] = useState(r.direccion?.trim() || '___________________________________');
+  const [personasInput, setPersonasInput] = useState(String((r.adultos ?? 0) + (r.ninos ?? 0)));
+  const [fechaInicioInput, setFechaInicioInput] = useState(fmtFecha(r.fecha_inicio));
+  const [horaInicioInput, setHoraInicioInput]   = useState(r.hora_inicio ?? '14:00');
+  const [fechaFinInput, setFechaFinInput] = useState(fmtFecha(r.fecha_fin));
+  const [horaFinInput, setHoraFinInput]   = useState(r.hora_fin ?? '10:00');
+  const [precioInput, setPrecioInput]     = useState(String(Math.round(r.monto_usd ?? 0)));
+
   const montoUsd  = parseInt(precioInput, 10) || 0;
   const enLetras  = montoUsd > 0 ? numeroALetras(montoUsd) : '—';
-  const domicilio = r.direccion?.trim() || '___________________________________';
-  const hora_in   = r.hora_inicio ?? '14:00';
-  const hora_out  = r.hora_fin    ?? '10:00';
 
   return (
     <div className="min-h-screen bg-white print:min-h-0">
@@ -91,15 +115,19 @@ export default function ContratoPrint({ r }: { r: Reserva }) {
            style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
 
         {/* Título */}
-        <h1 className="text-center font-bold underline text-[14px] mb-6">
+        <h1 className="text-center font-bold underline text-[14px] mb-1 print:mb-6">
           CONTRATO DE LOCACIÓN TEMPORAL DE VIVIENDA AMOBLADA
         </h1>
+        <p className="print:hidden text-center text-slate-400 text-[11px] mb-5">
+          Los campos con recuadro se pueden editar antes de imprimir
+        </p>
 
         {/* Encabezado partes */}
         <P>
           Entre <B>Maria Victoria Di Lucca, DNI 31.419.544</B>, representada en este acto por el Sr. Jorge Luis
           Martinez, D.N.I. N° 24280484, en adelante denominada la &quot;LOCADORA&quot;, por una parte, y, por la otra
-          el/la Sr/a. <B>{r.huesped}, D.N.I. N° {r.dni}</B>, mayor de edad y hábil para este acto, en adelante
+          el/la Sr/a. <EditField value={huesped} onChange={setHuesped} width="w-56" />, D.N.I. N°{' '}
+          <EditField value={dni} onChange={setDni} width="w-32" />, mayor de edad y hábil para este acto, en adelante
           denominado/a como el LOCATARIO, y en conjunto denominados como las <B>PARTES</B> convienen en celebrar el
           presente <B>CONTRATO DE LOCACIÓN TEMPORAL DE VIVIENDA AMOBLADA</B> sujeto a las cláusulas siguientes:
         </P>
@@ -120,8 +148,9 @@ export default function ContratoPrint({ r }: { r: Reserva }) {
         <Titulo>SEGUNDA. DESTINO:</Titulo>
         <P>
           2.1 &nbsp; El INMUEBLE se destinará exclusivamente a vivienda con fines de turismo, descanso o similares del
-          LOCATARIO y sus familiares, hasta un máximo de <B>{personas} personas</B>, no pudiendo variarse este destino
-          ni la cantidad de ocupantes.
+          LOCATARIO y sus familiares, hasta un máximo de{' '}
+          <EditField value={personasInput} onChange={setPersonasInput} width="w-12" type="number" /> personas, no
+          pudiendo variarse este destino ni la cantidad de ocupantes.
         </P>
         <P>
           2.2 &nbsp; También está prohibido al LOCATARIO sub-alquilar, prestar o ceder, total o parcialmente, a título
@@ -134,20 +163,9 @@ export default function ContratoPrint({ r }: { r: Reserva }) {
         <Titulo>TERCERA. PRECIO:</Titulo>
         <P>
           3.1 &nbsp; El precio de la locación se conviene la suma de{' '}
-          <B>
-            {enLetras} (
-            <input
-              type="number"
-              value={precioInput}
-              onChange={(e) => setPrecioInput(e.target.value)}
-              className="inline-block w-20 text-center font-bold border border-slate-300 rounded px-1
-                         focus:outline-none focus:ring-1 focus:ring-blue-400
-                         print:w-auto print:border-none print:rounded-none print:px-0 print:ring-0
-                         [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            {' '}dólares)
-          </B>.
-          <span className="print:hidden text-slate-400 text-[11px]"> &nbsp;(precio editable)</span>
+          {enLetras} (
+          <EditField value={precioInput} onChange={setPrecioInput} width="w-20" type="number" bold={false} />
+          {' '}dólares).
         </P>
         <P>
           3.2 &nbsp; El pago del precio establecido en la cláusula anterior, la LOCADORA lo recibe del LOCATARIO en
@@ -191,8 +209,10 @@ export default function ContratoPrint({ r }: { r: Reserva }) {
         <Titulo>QUINTA. PLAZO:</Titulo>
         <P>
           5.1 &nbsp; El plazo total e improrrogable de este contrato, será desde el día{' '}
-          <B>{fmtFecha(r.fecha_inicio)} a partir de las {hora_in} horas</B> venciendo el día{' '}
-          <B>{fmtFecha(r.fecha_fin)}, a las {hora_out} horas</B>.
+          <EditField value={fechaInicioInput} onChange={setFechaInicioInput} width="w-24" /> a partir de las{' '}
+          <EditField value={horaInicioInput} onChange={setHoraInicioInput} width="w-16" /> horas venciendo el día{' '}
+          <EditField value={fechaFinInput} onChange={setFechaFinInput} width="w-24" />, a las{' '}
+          <EditField value={horaFinInput} onChange={setHoraFinInput} width="w-16" /> horas.
         </P>
         <P>
           5.2 &nbsp; El LOCATARIO queda notificado en este acto, que el INMUEBLE está destinado únicamente para este
@@ -323,7 +343,8 @@ export default function ContratoPrint({ r }: { r: Reserva }) {
         <P>12 &nbsp; Quedan constituidos los domicilios especiales, donde tendrán eficacia todas las notificaciones,
           sean extra o judiciales derivadas del presente contrato, en las que seguidamente se indican:</P>
         <ul className="list-disc ml-6 mb-2 space-y-1">
-          <li>El LOCATARIO constituye domicilio real en calle <B>{domicilio}</B>.</li>
+          <li>El LOCATARIO constituye domicilio real en calle{' '}
+            <EditField value={direccionInput} onChange={setDireccionInput} width="w-72" />.</li>
           <li>La LOCADORA, en calle Gral. Lopez 2642, 6to B de la ciudad de Santa Fé.</li>
         </ul>
 
@@ -360,8 +381,8 @@ export default function ContratoPrint({ r }: { r: Reserva }) {
           <div>
             <div className="border-t border-black pt-2">
               <p>LOCATARIO/A</p>
-              <p className="font-bold">{r.huesped}</p>
-              <p>DNI {r.dni}</p>
+              <p className="font-bold">{huesped}</p>
+              <p>DNI {dni}</p>
             </div>
           </div>
         </div>
