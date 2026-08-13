@@ -276,7 +276,7 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
                           <a href={`/reservas/${r.id}/resumen`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-slate-50 text-slate-400 hover:text-slate-700 transition-colors" title="Ver resumen PDF">
                             <FileText size={14} />
                           </a>
-                          {r.plataforma === 'particular' && r.saldo_pagado && (
+                          {r.plataforma === 'particular' && (
                             <a href={`/reservas/${r.id}/contrato`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-violet-50 text-slate-400 hover:text-violet-600 transition-colors" title="Ver contrato PDF">
                               <ScrollText size={14} />
                             </a>
@@ -415,7 +415,7 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
                   <a href={`/reservas/${r.id}/resumen`} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs py-1 flex-1 flex items-center justify-center gap-1">
                     <FileText size={13} /> Resumen
                   </a>
-                  {r.plataforma === 'particular' && r.saldo_pagado && (
+                  {r.plataforma === 'particular' && (
                     <a href={`/reservas/${r.id}/contrato`} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs py-1 flex-1 flex items-center justify-center gap-1 text-violet-600 hover:text-violet-700">
                       <ScrollText size={13} /> Contrato
                     </a>

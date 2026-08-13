@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import type { Reserva } from '@/lib/types';
 import PrintButton from './PrintButton';
 
@@ -66,7 +69,8 @@ function B({ children }: { children: React.ReactNode }) {
 
 export default function ContratoPrint({ r }: { r: Reserva }) {
   const personas  = (r.adultos ?? 0) + (r.ninos ?? 0);
-  const montoUsd  = Math.round(r.monto_usd ?? 0);
+  const [precioInput, setPrecioInput] = useState(String(Math.round(r.monto_usd ?? 0)));
+  const montoUsd  = parseInt(precioInput, 10) || 0;
   const enLetras  = montoUsd > 0 ? numeroALetras(montoUsd) : '—';
   const domicilio = r.direccion?.trim() || '___________________________________';
   const hora_in   = r.hora_inicio ?? '14:00';
@@ -130,7 +134,20 @@ export default function ContratoPrint({ r }: { r: Reserva }) {
         <Titulo>TERCERA. PRECIO:</Titulo>
         <P>
           3.1 &nbsp; El precio de la locación se conviene la suma de{' '}
-          <B>{enLetras} ({montoUsd}) dólares</B>.
+          <B>
+            {enLetras} (
+            <input
+              type="number"
+              value={precioInput}
+              onChange={(e) => setPrecioInput(e.target.value)}
+              className="inline-block w-20 text-center font-bold border border-slate-300 rounded px-1
+                         focus:outline-none focus:ring-1 focus:ring-blue-400
+                         print:w-auto print:border-none print:rounded-none print:px-0 print:ring-0
+                         [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            {' '}dólares)
+          </B>.
+          <span className="print:hidden text-slate-400 text-[11px]"> &nbsp;(precio editable)</span>
         </P>
         <P>
           3.2 &nbsp; El pago del precio establecido en la cláusula anterior, la LOCADORA lo recibe del LOCATARIO en
