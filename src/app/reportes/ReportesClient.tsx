@@ -38,6 +38,14 @@ interface ReportData {
   entradasIngreso: EntradaIngreso[];
   reservasUnicas: number;
   gastos: Gasto[];
+  acumuladoHasta: string;
+  ingresosAcum: number;
+  gastosAcum: number;
+  miNetoAcum: number;
+  socioNetoAcum: number;
+  miPosicionRealAcum: number;
+  socioPosicionRealAcum: number;
+  saldoAcum: number;
 }
 
 export default function ReportesClient({ data }: { data: ReportData }) {
@@ -94,6 +102,42 @@ export default function ReportesClient({ data }: { data: ReportData }) {
           <FileText size={15} />
           Resumen ejecutivo PDF
         </Link>
+      </div>
+
+      {/* Balance acumulado histórico con el socio */}
+      <div className={`card p-5 border-2 ${data.saldoAcum >= 0 ? 'border-green-200' : 'border-orange-200'}`}>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-slate-800">Balance histórico con el socio</h3>
+          <span className="text-xs text-slate-400">Actualizado al {formatDate(data.acumuladoHasta)}</span>
+        </div>
+        <p className="text-xs text-slate-500 mb-4">Considera todos los ingresos y gastos desde el inicio, sin importar el período elegido abajo.</p>
+
+        {data.saldoAcum === 0 ? (
+          <p className="text-green-700 font-semibold">✓ Están al día, no hay saldo acumulado.</p>
+        ) : data.saldoAcum > 0 ? (
+          <div className="bg-green-50 rounded-xl px-4 py-3">
+            <p className="text-sm text-slate-600 mb-1">Hasta ahora, el socio me debe:</p>
+            <p className="text-2xl font-bold text-green-700">{formatARS(data.saldoAcum)}</p>
+          </div>
+        ) : (
+          <div className="bg-orange-50 rounded-xl px-4 py-3">
+            <p className="text-sm text-slate-600 mb-1">Hasta ahora, yo le debo al socio:</p>
+            <p className="text-2xl font-bold text-orange-700">{formatARS(Math.abs(data.saldoAcum))}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 text-sm mt-3">
+          <div className="bg-slate-50 rounded-lg p-3">
+            <p className="text-slate-500 text-xs mb-1">Neto teórico del socio (35%)</p>
+            <p className="font-bold text-blue-700">{formatARS(data.socioNetoAcum)}</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-3">
+            <p className="text-slate-500 text-xs mb-1">Posición real del socio</p>
+            <p className={`font-bold ${data.socioPosicionRealAcum >= 0 ? 'text-slate-700' : 'text-red-700'}`}>
+              {formatARS(data.socioPosicionRealAcum)}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Selector período */}

@@ -20,7 +20,13 @@ export default async function ReportesPage({
   const desde = searchParams.desde ?? defDesde;
   const hasta = searchParams.hasta ?? defHasta;
 
-  const [ingresos, gastosTotales, gastosPorPagador, ingresosPorSocio, todasReservas, gastos] =
+  const inicioHistorico = '2000-01-01';
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  const [
+    ingresos, gastosTotales, gastosPorPagador, ingresosPorSocio, todasReservas, gastos,
+    ingresosAcum, gastosAcum, gastosPorPagadorAcum, ingresosPorSocioAcum,
+  ] =
     await Promise.all([
       getSumIngresos(desde, hasta),
       getSumGastos(desde, hasta),
@@ -28,6 +34,10 @@ export default async function ReportesPage({
       getSumIngresosPorSocio(desde, hasta),
       getReservas(),
       getGastos(desde, hasta),
+      getSumIngresos(inicioHistorico, hoy),
+      getSumGastos(inicioHistorico, hoy),
+      getSumGastosPorPagador(inicioHistorico, hoy),
+      getSumIngresosPorSocio(inicioHistorico, hoy),
     ]);
 
   const neto = ingresos - gastosTotales;
@@ -61,6 +71,13 @@ export default async function ReportesPage({
   const socioPosicionReal = socioCobro - socioPago;
   const saldo = miNeto - miPosicionReal;
 
+  // Balance acumulado histórico (independiente del período filtrado arriba)
+  const miNetoAcum = ingresosAcum * 0.65 - gastosAcum * 0.65;
+  const socioNetoAcum = ingresosAcum * 0.35 - gastosAcum * 0.35;
+  const miPosicionRealAcum = ingresosPorSocioAcum.yo - gastosPorPagadorAcum.yo;
+  const socioPosicionRealAcum = ingresosPorSocioAcum.socio - gastosPorPagadorAcum.socio;
+  const saldoAcum = miNetoAcum - miPosicionRealAcum;
+
   const data = {
     desde,
     hasta,
@@ -83,6 +100,14 @@ export default async function ReportesPage({
     entradasIngreso,
     reservasUnicas,
     gastos,
+    acumuladoHasta: hoy,
+    ingresosAcum,
+    gastosAcum,
+    miNetoAcum,
+    socioNetoAcum,
+    miPosicionRealAcum,
+    socioPosicionRealAcum,
+    saldoAcum,
   };
 
   return <ReportesClient data={data} />;
