@@ -214,7 +214,7 @@ export default async function ResumenEjecutivoPage({
                   <span className="text-slate-800">{formatARS(yoPague)}</span>
                 </div>
                 <div className="flex justify-between text-sm print:text-xs py-1 font-bold border-t border-slate-100">
-                  <span className="text-slate-700">Pagó el socio</span>
+                  <span className="text-slate-700">Pagó Luis</span>
                   <span className="text-slate-800">{formatARS(socioPague)}</span>
                 </div>
               </Section>
@@ -231,7 +231,7 @@ export default async function ResumenEjecutivoPage({
                 <Row label="Posición real" value={miPosicionReal} color={miPosicionReal >= 0 ? 'text-slate-700' : 'text-red-700'} bold />
               </div>
               <div className="border-t border-slate-200 py-1 mt-1">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 mt-1">Socio (35%)</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 mt-1">Luis (35%)</p>
                 <Row label="Parte de ingresos" value={socioParteIngresos} color="text-green-700" />
                 <Row label="Parte de gastos" value={-socioParteGastos} color="text-red-700" />
                 <Row label="Neto teórico" value={socioNeto} color={socioNeto >= 0 ? 'text-blue-700' : 'text-red-700'} bold />
@@ -253,11 +253,11 @@ export default async function ResumenEjecutivoPage({
             <p className="font-semibold text-green-700">✓ Están al día — no hay saldo pendiente entre socios.</p>
           ) : saldo > 0 ? (
             <p className="font-bold text-green-800 text-base print:text-sm">
-              El socio le debe a María Victoria: {formatARS(saldo)}
+              Luis le debe a María Victoria: {formatARS(saldo)}
             </p>
           ) : (
             <p className="font-bold text-orange-800 text-base print:text-sm">
-              María Victoria le debe al socio: {formatARS(Math.abs(saldo))}
+              María Victoria le debe a Luis: {formatARS(Math.abs(saldo))}
             </p>
           )}
         </div>

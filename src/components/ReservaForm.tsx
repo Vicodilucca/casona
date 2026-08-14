@@ -393,7 +393,7 @@ export default function ReservaForm({ initial, onClose }: Props) {
               <div className="text-xs text-blue-800 leading-snug">
                 <span className="font-semibold">Seña sugerida 50%:</span>{' '}
                 USD {senaUsd.toFixed(0)} = {formatARS(senaArs)}
-                <span className="text-blue-500 ml-1">· Yo {formatARS(senaYo)} · Socio {formatARS(senaSocio)}</span>
+                <span className="text-blue-500 ml-1">· Yo {formatARS(senaYo)} · Luis {formatARS(senaSocio)}</span>
               </div>
               <button
                 type="button"
@@ -411,7 +411,7 @@ export default function ReservaForm({ initial, onClose }: Props) {
               <MontoInput value={form.monto_yo} onChange={(v) => set('monto_yo', v)} placeholder="0" />
             </div>
             <div>
-              <label className="label">Recibió el socio</label>
+              <label className="label">Recibió Luis</label>
               <MontoInput value={form.monto_socio} onChange={(v) => set('monto_socio', v)} placeholder="0" />
             </div>
           </div>
@@ -466,16 +466,16 @@ export default function ReservaForm({ initial, onClose }: Props) {
                   </div>
                   {!isAirbnb && (
                     <div>
-                      <label className="label">Cobró el socio (saldo)</label>
+                      <label className="label">Cobró Luis (saldo)</label>
                       <MontoInput value={form.saldo_socio} onChange={(v) => set('saldo_socio', v)} placeholder="0" />
                     </div>
                   )}
                 </div>
                 {!isAirbnb && (
                   <div>
-                    <label className="label">⚡ Luz cobrada por socio</label>
+                    <label className="label">⚡ Luz cobrada por Luis</label>
                     <MontoInput value={form.monto_luz} onChange={(v) => set('monto_luz', v)} placeholder="0" />
-                    <p className="text-xs text-slate-400 mt-1">Porción de luz incluida dentro del monto del socio</p>
+                    <p className="text-xs text-slate-400 mt-1">Porción de luz incluida dentro del monto de Luis</p>
                   </div>
                 )}
               </div>
@@ -506,7 +506,7 @@ export default function ReservaForm({ initial, onClose }: Props) {
                       {formatARS(saldoCalculado)}
                       {!isAirbnb && (
                         <span className="text-amber-600 ml-1">
-                          · Yo {formatARS(saldoYoCalculado)} · Socio {formatARS(saldoSocioCalculado)}
+                          · Yo {formatARS(saldoYoCalculado)} · Luis {formatARS(saldoSocioCalculado)}
                         </span>
                       )}
                     </span>
@@ -531,7 +531,7 @@ export default function ReservaForm({ initial, onClose }: Props) {
               </div>
               {!isAirbnb && (
                 <div>
-                  <label className="label">Recibió el socio</label>
+                  <label className="label">Recibió Luis</label>
                   <MontoInput value={saldoSocioEfectivo} onChange={(v) => setSaldoManual('saldo_socio', v)} placeholder="0" />
                 </div>
               )}

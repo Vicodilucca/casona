@@ -156,7 +156,7 @@ export default async function Dashboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold text-red-700">{formatARS(g.monto)}</p>
-                    <p className="text-xs text-slate-400">{g.pagado_por === 'yo' ? 'Yo' : 'Socio'}</p>
+                    <p className="text-xs text-slate-400">{g.pagado_por === 'yo' ? 'Yo' : 'Luis'}</p>
                   </div>
                 </div>
               ))}

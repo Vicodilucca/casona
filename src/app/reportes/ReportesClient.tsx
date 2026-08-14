@@ -107,7 +107,7 @@ export default function ReportesClient({ data }: { data: ReportData }) {
       {/* Balance acumulado histórico con el socio */}
       <div className={`card p-5 border-2 ${data.saldoAcum >= 0 ? 'border-green-200' : 'border-orange-200'}`}>
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-slate-800">Balance histórico con el socio</h3>
+          <h3 className="font-semibold text-slate-800">Balance histórico con Luis</h3>
           <span className="text-xs text-slate-400">Actualizado al {formatDate(data.acumuladoHasta)}</span>
         </div>
         <p className="text-xs text-slate-500 mb-4">Considera todos los ingresos y gastos desde el inicio, sin importar el período elegido abajo.</p>
@@ -116,23 +116,23 @@ export default function ReportesClient({ data }: { data: ReportData }) {
           <p className="text-green-700 font-semibold">✓ Están al día, no hay saldo acumulado.</p>
         ) : data.saldoAcum > 0 ? (
           <div className="bg-green-50 rounded-xl px-4 py-3">
-            <p className="text-sm text-slate-600 mb-1">Hasta ahora, el socio me debe:</p>
+            <p className="text-sm text-slate-600 mb-1">Hasta ahora, Luis me debe:</p>
             <p className="text-2xl font-bold text-green-700">{formatARS(data.saldoAcum)}</p>
           </div>
         ) : (
           <div className="bg-orange-50 rounded-xl px-4 py-3">
-            <p className="text-sm text-slate-600 mb-1">Hasta ahora, yo le debo al socio:</p>
+            <p className="text-sm text-slate-600 mb-1">Hasta ahora, yo le debo a Luis:</p>
             <p className="text-2xl font-bold text-orange-700">{formatARS(Math.abs(data.saldoAcum))}</p>
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-3 text-sm mt-3">
           <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-slate-500 text-xs mb-1">Neto teórico del socio (35%)</p>
+            <p className="text-slate-500 text-xs mb-1">Neto teórico de Luis (35%)</p>
             <p className="font-bold text-blue-700">{formatARS(data.socioNetoAcum)}</p>
           </div>
           <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-slate-500 text-xs mb-1">Posición real del socio</p>
+            <p className="text-slate-500 text-xs mb-1">Posición real de Luis</p>
             <p className={`font-bold ${data.socioPosicionRealAcum >= 0 ? 'text-slate-700' : 'text-red-700'}`}>
               {formatARS(data.socioPosicionRealAcum)}
             </p>
@@ -292,7 +292,7 @@ export default function ReportesClient({ data }: { data: ReportData }) {
                   Mi posición real es menor a mi neto teórico.
                 </p>
                 <p className="text-lg font-bold text-green-700">
-                  El socio me debe: {formatARS(data.saldo)}
+                  Luis me debe: {formatARS(data.saldo)}
                 </p>
               </div>
             ) : (
@@ -301,7 +301,7 @@ export default function ReportesClient({ data }: { data: ReportData }) {
                   Mi posición real es mayor a mi neto teórico.
                 </p>
                 <p className="text-lg font-bold text-orange-700">
-                  Yo le debo al socio: {formatARS(Math.abs(data.saldo))}
+                  Yo le debo a Luis: {formatARS(Math.abs(data.saldo))}
                 </p>
               </div>
             )}
@@ -337,7 +337,7 @@ export default function ReportesClient({ data }: { data: ReportData }) {
               <span className="font-semibold text-slate-700">{formatARS(data.yoPague)}</span>
             </div>
             <div className="flex justify-between text-xs text-slate-500">
-              <span>Pagó el socio</span>
+              <span>Pagó Luis</span>
               <span className="font-semibold text-slate-700">{formatARS(data.socioPago)}</span>
             </div>
             <div className="flex justify-between items-center pt-1 border-t border-slate-100">
@@ -378,7 +378,7 @@ export default function ReportesClient({ data }: { data: ReportData }) {
                       <span className="font-semibold text-green-800">{formatARS(e.yo)}</span>
                     </div>
                     <div className="text-xs bg-blue-50 rounded px-2 py-1">
-                      <span className="text-blue-600">Cobró socio: </span>
+                      <span className="text-blue-600">Cobró Luis: </span>
                       <span className="font-semibold text-blue-800">{formatARS(e.socio)}</span>
                     </div>
                   </div>
@@ -396,7 +396,7 @@ export default function ReportesClient({ data }: { data: ReportData }) {
                   <span className="font-semibold text-slate-700">{formatARS(totalYo)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-slate-500">
-                  <span>Cobró el socio</span>
+                  <span>Cobró Luis</span>
                   <span className="font-semibold text-slate-700">{formatARS(totalSocio)}</span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-slate-100">

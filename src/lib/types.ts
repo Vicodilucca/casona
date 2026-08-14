@@ -56,7 +56,7 @@ export const CATEGORIAS: Record<string, string[]> = {
 
 export const SOCIOS = {
   yo: { nombre: 'María Victoria', porcentaje: 0.65 },
-  socio: { nombre: 'Socio', porcentaje: 0.35 },
+  socio: { nombre: 'Luis', porcentaje: 0.35 },
 };
 
 export interface Consulta {

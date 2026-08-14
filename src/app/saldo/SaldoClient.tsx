@@ -205,7 +205,7 @@ function SaldoCard({ reserva: r }: { reserva: Reserva }) {
                 </span>
                 {formatARS(saldoArsCalc)}
                 <span className="text-amber-600 ml-1">
-                  · Yo {formatARS(saldoYoCalc)} · Socio {formatARS(saldoSocioCalc)}
+                  · Yo {formatARS(saldoYoCalc)} · Luis {formatARS(saldoSocioCalc)}
                 </span>
               </div>
               <button
@@ -227,7 +227,7 @@ function SaldoCard({ reserva: r }: { reserva: Reserva }) {
             </div>
             {r.plataforma !== 'airbnb' && (
               <div>
-                <label className="label">Recibió el socio</label>
+                <label className="label">Recibió Luis</label>
                 <MontoInput value={saldoSocio} onChange={setSaldoSocio} placeholder="0" />
               </div>
             )}
@@ -236,11 +236,11 @@ function SaldoCard({ reserva: r }: { reserva: Reserva }) {
           {/* Luz — solo reservas particulares */}
           {r.plataforma !== 'airbnb' && (
             <div>
-              <label className="label">Luz cobrada por socio</label>
+              <label className="label">Luz cobrada por Luis</label>
               <MontoInput value={luzSocio} onChange={setLuzSocio} placeholder="0" />
               {luzSocioVal > 0 && (
                 <p className="text-xs text-slate-500 mt-1">
-                  Se sumará al monto del socio → total socio: <span className="font-semibold">{formatARS(saldoSocioVal + luzSocioVal)}</span>
+                  Se sumará al monto de Luis → total Luis: <span className="font-semibold">{formatARS(saldoSocioVal + luzSocioVal)}</span>
                 </p>
               )}
             </div>

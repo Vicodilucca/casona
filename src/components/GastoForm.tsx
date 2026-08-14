@@ -171,7 +171,7 @@ export default function GastoForm({ initial, onClose }: Props) {
           <label className="label">Pagado por *</label>
           <select className="input" value={form.pagado_por} onChange={(e) => set('pagado_por', e.target.value)}>
             <option value="yo">Yo (65%)</option>
-            <option value="socio">Socio (35%)</option>
+            <option value="socio">Luis (35%)</option>
           </select>
         </div>
         <div>

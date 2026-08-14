@@ -166,7 +166,7 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
                 <th className="text-center px-4 py-3 font-semibold text-slate-600">Ocup.</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Plataforma</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600">Cobré yo</th>
-                <th className="text-right px-4 py-3 font-semibold text-slate-600">Cobró socio</th>
+                <th className="text-right px-4 py-3 font-semibold text-slate-600">Cobró Luis</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600">Total</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -378,7 +378,7 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
                         <p className="text-green-500 mt-0.5">Parcial {formatARS(r.monto_yo ?? 0)} + Saldo {formatARS(r.saldo_yo ?? 0)}</p>
                       </div>
                       <div className="bg-blue-50 rounded-lg px-2 py-1.5">
-                        <p className="text-blue-600 font-medium">Cobró socio · total</p>
+                        <p className="text-blue-600 font-medium">Cobró Luis · total</p>
                         <p className="text-blue-800 font-bold">{formatARS((r.monto_socio ?? 0) + (r.saldo_socio ?? 0))}</p>
                         <p className="text-blue-500 mt-0.5">Parcial {formatARS(r.monto_socio ?? 0)} + Saldo {formatARS(r.saldo_socio ?? 0)}</p>
                       </div>
@@ -397,7 +397,7 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
                       <p className="text-green-800 font-bold">{formatARS(r.monto_yo ?? 0)}</p>
                     </div>
                     <div className="bg-blue-50 rounded-lg px-2 py-1.5">
-                      <p className="text-blue-600 font-medium">Cobró socio</p>
+                      <p className="text-blue-600 font-medium">Cobró Luis</p>
                       <p className="text-blue-800 font-bold">{formatARS(r.monto_socio ?? 0)}</p>
                     </div>
                   </div>
@@ -499,7 +499,7 @@ function SaldoToggle({ reserva: r }: { reserva: Reserva }) {
             <p className="text-green-900 font-bold text-sm">{(r.saldo_yo ?? 0) > 0 ? formatARS(r.saldo_yo ?? 0) : <span className="text-slate-400 font-normal">No cobré</span>}</p>
           </div>
           <div className="bg-white/70 rounded-lg px-2.5 py-2">
-            <p className="text-blue-700 font-semibold mb-0.5">Cobró socio (saldo)</p>
+            <p className="text-blue-700 font-semibold mb-0.5">Cobró Luis (saldo)</p>
             <p className="text-blue-900 font-bold text-sm">{(r.saldo_socio ?? 0) > 0 ? formatARS(r.saldo_socio ?? 0) : <span className="text-slate-400 font-normal">No cobró</span>}</p>
           </div>
         </div>
@@ -537,7 +537,7 @@ function SaldoToggle({ reserva: r }: { reserva: Reserva }) {
             <div className="text-xs text-amber-800 leading-snug">
               <span className="font-semibold">Saldo calculado:</span>{' '}
               {formatARS(saldoArsCalc)}
-              <span className="text-amber-600 ml-1">· Yo {formatARS(saldoYoCalc)} · Socio {formatARS(saldoSocioCalc)}</span>
+              <span className="text-amber-600 ml-1">· Yo {formatARS(saldoYoCalc)} · Luis {formatARS(saldoSocioCalc)}</span>
             </div>
             <button type="button" onClick={aplicarCalculo}
               className="shrink-0 flex items-center gap-1 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1.5 rounded-lg transition-colors">
@@ -553,7 +553,7 @@ function SaldoToggle({ reserva: r }: { reserva: Reserva }) {
             <MontoInput value={saldoYo} onChange={setSaldoYo} placeholder="0" />
           </div>
           <div>
-            <label className="label">Recibió el socio</label>
+            <label className="label">Recibió Luis</label>
             <MontoInput value={saldoSocio} onChange={setSaldoSocio} placeholder="0" />
           </div>
         </div>

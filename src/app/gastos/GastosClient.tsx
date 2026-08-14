@@ -147,7 +147,7 @@ export default function GastosClient({ gastos }: { gastos: Gasto[] }) {
           <select className="input w-auto" value={filtroPagador} onChange={(e) => setFiltroPagador(e.target.value)}>
             <option value="">Todos</option>
             <option value="yo">Pagados por mí</option>
-            <option value="socio">Pagados por socio</option>
+            <option value="socio">Pagados por Luis</option>
           </select>
 
           {/* Búsqueda */}
@@ -170,7 +170,7 @@ export default function GastosClient({ gastos }: { gastos: Gasto[] }) {
           {[
             { label: 'Total', value: totalFiltrado, color: 'text-red-700 bg-red-50 border-red-100' },
             { label: 'Pagado por mí', value: totalYo, color: 'text-slate-700 bg-slate-50 border-slate-100' },
-            { label: 'Pagado por socio', value: totalSocio, color: 'text-slate-700 bg-slate-50 border-slate-100' },
+            { label: 'Pagado por Luis', value: totalSocio, color: 'text-slate-700 bg-slate-50 border-slate-100' },
           ].map(({ label, value, color }) => (
             <div key={label} className={`rounded-lg border px-3 py-2 ${color}`}>
               <p className="text-xs opacity-70">{label}</p>
@@ -221,7 +221,7 @@ export default function GastosClient({ gastos }: { gastos: Gasto[] }) {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {g.pagado_por === 'yo' ? 'Yo' : 'Socio'}
+                      {g.pagado_por === 'yo' ? 'Yo' : 'Luis'}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-red-700 whitespace-nowrap">
                       {formatARS(g.monto)}
@@ -271,7 +271,7 @@ export default function GastosClient({ gastos }: { gastos: Gasto[] }) {
                   {g.tipo}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                  {g.pagado_por === 'yo' ? 'Pagado por mí' : 'Pagado por socio'}
+                  {g.pagado_por === 'yo' ? 'Pagado por mí' : 'Pagado por Luis'}
                 </span>
               </div>
               <div className="flex gap-2 pt-1">
