@@ -50,6 +50,7 @@ export const CATEGORIAS: Record<string, string[]> = {
   Impuestos: ['API', 'TGI', 'VEP', 'Otro'],
   Mantenimiento: [],
   Servicios: ['EPE', 'Agua', 'Alarma', 'Internet', 'Seguro', 'Otro'],
+  Alquiler: [],
   Otros: [],
 };
 
