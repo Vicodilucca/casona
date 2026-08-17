@@ -8,7 +8,7 @@ import { SOCIOS } from '@/lib/types';
 import MontoInput from '@/components/MontoInput';
 import type { Reserva } from '@/lib/types';
 
-export default function SaldoClient({ pendientes }: { pendientes: Reserva[] }) {
+export default function SaldoClient({ pendientes, puedeEditar }: { pendientes: Reserva[]; puedeEditar: boolean }) {
   const totalPendiente = pendientes.reduce((sum, r) => sum + (r.saldo_pendiente ?? 0), 0);
 
   return (
@@ -37,14 +37,14 @@ export default function SaldoClient({ pendientes }: { pendientes: Reserva[] }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {pendientes.map((r) => <SaldoCard key={r.id} reserva={r} />)}
+          {pendientes.map((r) => <SaldoCard key={r.id} reserva={r} puedeEditar={puedeEditar} />)}
         </div>
       )}
     </div>
   );
 }
 
-function SaldoCard({ reserva: r }: { reserva: Reserva }) {
+function SaldoCard({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -165,7 +165,14 @@ function SaldoCard({ reserva: r }: { reserva: Reserva }) {
       </div>
 
       {/* Confirmar cobro */}
-      {!confirming ? (
+      {!puedeEditar ? (
+        <div className="w-full flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="w-5 h-5 rounded border-2 border-slate-300 shrink-0" />
+          <span className="text-sm text-slate-400 font-medium">
+            Saldo pendiente de cobro
+          </span>
+        </div>
+      ) : !confirming ? (
         <button
           onClick={() => setConfirming(true)}
           className="w-full flex items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 hover:border-green-400 hover:bg-green-50 px-4 py-3 transition-colors group"

@@ -6,8 +6,20 @@ import { Plus, KeyRound, Trash2, Power, X } from 'lucide-react';
 import {
   crearUsuario, editarUsuario, setUsuarioActivo, resetearPasswordUsuario, eliminarUsuario,
 } from '@/actions/usuarios';
-import type { Usuario, Rol, Seccion } from '@/lib/types';
-import { SECCIONES } from '@/lib/types';
+import type { Usuario, Rol, Seccion, Accion, Permiso } from '@/lib/types';
+import { SECCIONES, ACCIONES_POR_SECCION, ACCION_LABEL, permiso } from '@/lib/types';
+
+function resumenPermisos(permisos: Permiso[]): { seccion: string; acciones: string }[] {
+  const porSeccion = new Map<string, Accion[]>();
+  for (const p of permisos) {
+    const [seccion, accion] = p.split(':') as [Seccion, Accion];
+    (porSeccion.get(seccion) ?? porSeccion.set(seccion, []).get(seccion)!).push(accion);
+  }
+  return Array.from(porSeccion.entries()).map(([seccion, acciones]) => ({
+    seccion: SECCIONES.find((s) => s.key === seccion)?.label ?? seccion,
+    acciones: acciones.map((a) => ACCION_LABEL[a]).join(', '),
+  }));
+}
 
 function formatDate(s: string | null): string {
   if (!s) return '—';
@@ -44,14 +56,27 @@ function UsuarioForm({
   const [nombre, setNombre] = useState(inicial?.nombre ?? '');
   const [email, setEmail] = useState(inicial?.email ?? '');
   const [rol, setRol] = useState<Rol>(inicial?.rol ?? 'admin');
-  const [permisos, setPermisos] = useState<Seccion[]>(inicial?.permisos ?? []);
+  const [permisos, setPermisos] = useState<Permiso[]>(inicial?.permisos ?? []);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  function togglePermiso(seccion: Seccion) {
-    setPermisos((prev) =>
-      prev.includes(seccion) ? prev.filter((p) => p !== seccion) : [...prev, seccion]
-    );
+  // Desmarcar "ver" quita también el resto de las acciones de esa sección
+  // (no tendría sentido poder crear/editar algo que no se puede ver).
+  // Marcar cualquier otra acción implica "ver" automáticamente.
+  function togglePermiso(p: Permiso) {
+    const [seccion, accion] = p.split(':') as [Seccion, Accion];
+    setPermisos((prev) => {
+      const tenia = prev.includes(p);
+      if (tenia) {
+        return accion === 'ver'
+          ? prev.filter((x) => !x.startsWith(`${seccion}:`))
+          : prev.filter((x) => x !== p);
+      }
+      const next = new Set(prev);
+      next.add(p);
+      next.add(permiso(seccion, 'ver'));
+      return Array.from(next);
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -106,26 +131,38 @@ function UsuarioForm({
       {rol === 'admin' ? (
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-2">
-            Secciones a las que puede acceder
+            Accesos por sección
           </label>
-          <div className="grid sm:grid-cols-2 gap-2">
-            {SECCIONES.map((s) => (
-              <label
-                key={s.key}
-                className="flex items-start gap-2 border border-slate-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:bg-slate-50"
-              >
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  checked={permisos.includes(s.key)}
-                  onChange={() => togglePermiso(s.key)}
-                />
-                <span>
-                  <span className="block font-medium text-slate-700">{s.label}</span>
-                  <span className="block text-xs text-slate-400">{s.descripcion}</span>
-                </span>
-              </label>
-            ))}
+          <div className="space-y-2">
+            {SECCIONES.map((s) => {
+              const acciones = ACCIONES_POR_SECCION[s.key];
+              const veChecked = permisos.includes(permiso(s.key, 'ver'));
+              return (
+                <div
+                  key={s.key}
+                  className={`border rounded-lg px-3 py-2 transition-colors ${veChecked ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200'}`}
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <div>
+                      <span className="block font-medium text-slate-700 text-sm">{s.label}</span>
+                      <span className="block text-xs text-slate-400">{s.descripcion}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {acciones.map((a) => (
+                        <label key={a} className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={permisos.includes(permiso(s.key, a))}
+                            onChange={() => togglePermiso(permiso(s.key, a))}
+                          />
+                          {ACCION_LABEL[a]}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (
@@ -270,10 +307,10 @@ export default function UsuariosClient({
                     ) : u.permisos.length === 0 ? (
                       <span className="text-xs text-slate-400">Sin accesos</span>
                     ) : (
-                      <div className="flex flex-wrap gap-1 max-w-[220px]">
-                        {u.permisos.map((p) => (
-                          <span key={p} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-50 text-violet-700">
-                            {SECCIONES.find((s) => s.key === p)?.label ?? p}
+                      <div className="flex flex-wrap gap-1 max-w-[260px]">
+                        {resumenPermisos(u.permisos).map(({ seccion, acciones }) => (
+                          <span key={seccion} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-50 text-violet-700">
+                            {seccion}: {acciones}
                           </span>
                         ))}
                       </div>

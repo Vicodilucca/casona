@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Navbar from './Navbar';
-import type { Rol, Seccion } from '@/lib/types';
+import type { Rol, Permiso } from '@/lib/types';
 
 export default function AdminShell({
   children,
@@ -17,7 +17,7 @@ export default function AdminShell({
   consultasPendienteCount: number;
   usuarioNombre: string | null;
   usuarioRol: Rol | null;
-  usuarioPermisos: Seccion[];
+  usuarioPermisos: Permiso[];
 }) {
   const path = usePathname();
   const isPublic =

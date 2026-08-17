@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import LogoutButton from './LogoutButton';
-import type { Rol, Seccion } from '@/lib/types';
+import type { Rol, Permiso } from '@/lib/types';
+import { permiso } from '@/lib/types';
 
 const links = [
   { href: '/', label: 'Dashboard', icon: Home, seccion: undefined },
@@ -36,14 +37,14 @@ export default function Navbar({
   consultasPendienteCount: number;
   usuarioNombre: string;
   usuarioRol: Rol;
-  usuarioPermisos: Seccion[];
+  usuarioPermisos: Permiso[];
 }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const esSuperadmin = usuarioRol === 'superadmin';
   const visibleAdminLinks = esSuperadmin ? adminLinks : [];
   const visibleLinks = links.filter(
-    (l) => !l.seccion || esSuperadmin || usuarioPermisos.includes(l.seccion)
+    (l) => !l.seccion || esSuperadmin || usuarioPermisos.includes(permiso(l.seccion, 'ver'))
   );
 
   function getBadgeCount(badge?: 'saldo' | 'consultas') {

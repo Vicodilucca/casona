@@ -48,7 +48,13 @@ function EstadoBadge({ estado }: { estado: Consulta['estado'] }) {
   );
 }
 
-function ConsultaCard({ consulta, onEstado }: { consulta: Consulta; onEstado: (id: number, estado: Consulta['estado']) => void }) {
+function ConsultaCard({
+  consulta, onEstado, puedeEditar,
+}: {
+  consulta: Consulta;
+  onEstado: (id: number, estado: Consulta['estado']) => void;
+  puedeEditar: boolean;
+}) {
   const noches = diffDays(consulta.fecha_inicio, consulta.fecha_fin);
   const personas = consulta.adultos + consulta.ninos;
 
@@ -107,7 +113,7 @@ function ConsultaCard({ consulta, onEstado }: { consulta: Consulta; onEstado: (i
       )}
 
       {/* Action buttons */}
-      {consulta.estado !== 'convertida' && consulta.estado !== 'rechazada' && (
+      {puedeEditar && consulta.estado !== 'convertida' && consulta.estado !== 'rechazada' && (
         <div className="flex flex-wrap gap-2 pt-1">
           {consulta.estado !== 'contactado' && (
             <button
@@ -133,7 +139,7 @@ function ConsultaCard({ consulta, onEstado }: { consulta: Consulta; onEstado: (i
       )}
 
       {/* Reopen if rejected */}
-      {(consulta.estado === 'rechazada' || consulta.estado === 'convertida') && (
+      {puedeEditar && (consulta.estado === 'rechazada' || consulta.estado === 'convertida') && (
         <div className="flex gap-2 pt-1">
           <button
             onClick={() => onEstado(consulta.id, 'pendiente')}
@@ -149,7 +155,12 @@ function ConsultaCard({ consulta, onEstado }: { consulta: Consulta; onEstado: (i
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function ConsultasClient({ consultas: initialConsultas }: { consultas: Consulta[] }) {
+export default function ConsultasClient({
+  consultas: initialConsultas, puedeEditar,
+}: {
+  consultas: Consulta[];
+  puedeEditar: boolean;
+}) {
   const [consultas, setConsultas] = useState<Consulta[]>(initialConsultas);
   const [filtro, setFiltro] = useState<Filtro>('todas');
   const [isPending, startTransition] = useTransition();
@@ -246,6 +257,7 @@ export default function ConsultasClient({ consultas: initialConsultas }: { consu
               key={consulta.id}
               consulta={consulta}
               onEstado={handleEstado}
+              puedeEditar={puedeEditar}
             />
           ))}
         </div>

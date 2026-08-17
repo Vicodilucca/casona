@@ -82,20 +82,45 @@ export type Seccion =
   | 'reservas' | 'calendario' | 'gastos' | 'saldo' | 'reportes' | 'consultas';
 
 export const SECCIONES: { key: Seccion; label: string; descripcion: string }[] = [
-  { key: 'reservas',   label: 'Reservas',   descripcion: 'Ver, crear y editar reservas; descargar resumen y contrato en PDF' },
-  { key: 'calendario', label: 'Calendario', descripcion: 'Ver el calendario de ocupación' },
-  { key: 'gastos',     label: 'Gastos',     descripcion: 'Cargar, editar y eliminar gastos' },
-  { key: 'saldo',      label: 'Saldo',      descripcion: 'Ver y registrar cobros de saldos pendientes' },
-  { key: 'reportes',   label: 'Reportes',   descripcion: 'Ver reportes financieros y el balance con el socio' },
-  { key: 'consultas',  label: 'Consultas',  descripcion: 'Ver y gestionar consultas de huéspedes' },
+  { key: 'reservas',   label: 'Reservas',   descripcion: 'Reservas y sus PDF de resumen/contrato' },
+  { key: 'calendario', label: 'Calendario', descripcion: 'Calendario de ocupación' },
+  { key: 'gastos',     label: 'Gastos',     descripcion: 'Gastos del negocio' },
+  { key: 'saldo',      label: 'Saldo',      descripcion: 'Saldos pendientes de cobro' },
+  { key: 'reportes',   label: 'Reportes',   descripcion: 'Reportes financieros y balance con el socio' },
+  { key: 'consultas',  label: 'Consultas',  descripcion: 'Consultas de huéspedes' },
 ];
+
+// Acciones posibles dentro de cada sección. No todas las secciones admiten
+// las cuatro: p. ej. Calendario y Reportes son de solo lectura, y Consultas
+// no tiene alta ni baja (las consultas las crea el propio huésped).
+export type Accion = 'ver' | 'crear' | 'editar' | 'eliminar';
+
+export const ACCIONES_POR_SECCION: Record<Seccion, Accion[]> = {
+  reservas:   ['ver', 'crear', 'editar', 'eliminar'],
+  calendario: ['ver'],
+  gastos:     ['ver', 'crear', 'editar', 'eliminar'],
+  saldo:      ['ver', 'editar'],
+  reportes:   ['ver'],
+  consultas:  ['ver', 'editar'],
+};
+
+export const ACCION_LABEL: Record<Accion, string> = {
+  ver: 'Ver', crear: 'Crear', editar: 'Editar', eliminar: 'Eliminar',
+};
+
+// Un permiso se guarda como "seccion:accion", p. ej. "gastos:crear".
+export type Permiso = `${Seccion}:${Accion}`;
+
+export function permiso(seccion: Seccion, accion: Accion): Permiso {
+  return `${seccion}:${accion}`;
+}
 
 export interface Usuario {
   id: number;
   nombre: string;
   email: string;
   rol: Rol;
-  permisos: Seccion[];
+  permisos: Permiso[];
   activo: boolean;
   last_login_at: string | null;
   created_at: string;

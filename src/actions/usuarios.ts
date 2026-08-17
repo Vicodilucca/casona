@@ -14,11 +14,15 @@ import {
   getUsuarioPorEmail,
   getUsuarioPorId,
 } from '@/lib/db';
-import type { Rol, Seccion } from '@/lib/types';
-import { SECCIONES } from '@/lib/types';
+import type { Rol, Permiso } from '@/lib/types';
+import { ACCIONES_POR_SECCION, permiso as fmtPermiso } from '@/lib/types';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const SECCIONES_VALIDAS = new Set(SECCIONES.map((s) => s.key));
+const PERMISOS_VALIDOS = new Set(
+  Object.entries(ACCIONES_POR_SECCION).flatMap(([seccion, acciones]) =>
+    acciones.map((accion) => fmtPermiso(seccion as keyof typeof ACCIONES_POR_SECCION, accion))
+  )
+);
 
 function validarNombreEmail(nombre: string, email: string) {
   const n = nombre.trim();
@@ -28,13 +32,21 @@ function validarNombreEmail(nombre: string, email: string) {
   return { nombre: n, email: e };
 }
 
-function validarPermisos(permisos: Seccion[]): Seccion[] {
-  const limpios = Array.from(new Set(permisos)).filter((p) => SECCIONES_VALIDAS.has(p));
-  if (limpios.length !== permisos.length) throw new Error('Hay un permiso inválido en la lista.');
-  return limpios;
+// Cualquier acción (crear/editar/eliminar) implica automáticamente "ver" esa
+// sección — no tendría sentido poder crear gastos sin poder ver la lista.
+function validarPermisos(permisos: Permiso[]): Permiso[] {
+  const invalido = permisos.find((p) => !PERMISOS_VALIDOS.has(p));
+  if (invalido) throw new Error(`Permiso inválido: "${invalido}".`);
+
+  const set = new Set(permisos);
+  for (const p of permisos) {
+    const [seccion] = p.split(':');
+    set.add(fmtPermiso(seccion as Parameters<typeof fmtPermiso>[0], 'ver'));
+  }
+  return Array.from(set);
 }
 
-export async function crearUsuario(nombre: string, email: string, rol: Rol, permisos: Seccion[] = []) {
+export async function crearUsuario(nombre: string, email: string, rol: Rol, permisos: Permiso[] = []) {
   const actor = await requireAuth('superadmin');
   const { nombre: n, email: e } = validarNombreEmail(nombre, email);
   const p = validarPermisos(permisos);
@@ -52,7 +64,7 @@ export async function crearUsuario(nombre: string, email: string, rol: Rol, perm
   return { id: creado.id, tempPassword };
 }
 
-export async function editarUsuario(id: number, nombre: string, email: string, rol: Rol, permisos: Seccion[] = []) {
+export async function editarUsuario(id: number, nombre: string, email: string, rol: Rol, permisos: Permiso[] = []) {
   const actor = await requireAuth('superadmin');
   const { nombre: n, email: e } = validarNombreEmail(nombre, email);
   const p = validarPermisos(permisos);

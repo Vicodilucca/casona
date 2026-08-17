@@ -45,7 +45,14 @@ function monthIdx(fecha: string) {
   return parseInt(fecha.slice(5, 7)) - 1;
 }
 
-export default function GastosClient({ gastos }: { gastos: Gasto[] }) {
+export default function GastosClient({
+  gastos, puedeCrear, puedeEditar, puedeEliminar,
+}: {
+  gastos: Gasto[];
+  puedeCrear: boolean;
+  puedeEditar: boolean;
+  puedeEliminar: boolean;
+}) {
   const [modal, setModal] = useState<'nuevo' | Gasto | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
@@ -97,11 +104,13 @@ export default function GastosClient({ gastos }: { gastos: Gasto[] }) {
           <h1 className="text-xl font-bold text-slate-900">Gastos</h1>
           <p className="text-sm text-slate-500">{filtrados.length} registros</p>
         </div>
-        <button className="btn-primary" onClick={() => setModal('nuevo')}>
-          <Plus size={16} />
-          <span className="hidden sm:inline">Nuevo gasto</span>
-          <span className="sm:hidden">Nuevo</span>
-        </button>
+        {puedeCrear && (
+          <button className="btn-primary" onClick={() => setModal('nuevo')}>
+            <Plus size={16} />
+            <span className="hidden sm:inline">Nuevo gasto</span>
+            <span className="sm:hidden">Nuevo</span>
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -193,7 +202,7 @@ export default function GastosClient({ gastos }: { gastos: Gasto[] }) {
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Tipo</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Pagado por</th>
                 <th className="text-right px-4 py-3 font-semibold text-slate-600">Monto</th>
-                <th className="px-4 py-3" />
+                {(puedeEditar || puedeEliminar) && <th className="px-4 py-3" />}
               </tr>
             </thead>
             <tbody>
@@ -226,16 +235,22 @@ export default function GastosClient({ gastos }: { gastos: Gasto[] }) {
                     <td className="px-4 py-3 text-right font-semibold text-red-700 whitespace-nowrap">
                       {formatARS(g.monto)}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 justify-end">
-                        <button onClick={() => setModal(g)} className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
-                          <Pencil size={14} />
-                        </button>
-                        <button onClick={() => handleEliminar(g.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+                    {(puedeEditar || puedeEliminar) && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1 justify-end">
+                          {puedeEditar && (
+                            <button onClick={() => setModal(g)} className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
+                              <Pencil size={14} />
+                            </button>
+                          )}
+                          {puedeEliminar && (
+                            <button onClick={() => handleEliminar(g.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                   );
                 })
@@ -274,14 +289,20 @@ export default function GastosClient({ gastos }: { gastos: Gasto[] }) {
                   {g.pagado_por === 'yo' ? 'Pagado por mí' : 'Pagado por Luis'}
                 </span>
               </div>
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => setModal(g)} className="btn-secondary text-xs py-1 flex-1">
-                  <Pencil size={13} /> Editar
-                </button>
-                <button onClick={() => handleEliminar(g.id)} className="btn-danger text-xs py-1 flex-1">
-                  <Trash2 size={13} /> Eliminar
-                </button>
-              </div>
+              {(puedeEditar || puedeEliminar) && (
+                <div className="flex gap-2 pt-1">
+                  {puedeEditar && (
+                    <button onClick={() => setModal(g)} className="btn-secondary text-xs py-1 flex-1">
+                      <Pencil size={13} /> Editar
+                    </button>
+                  )}
+                  {puedeEliminar && (
+                    <button onClick={() => handleEliminar(g.id)} className="btn-danger text-xs py-1 flex-1">
+                      <Trash2 size={13} /> Eliminar
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             );
           })

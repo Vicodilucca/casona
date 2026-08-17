@@ -31,7 +31,16 @@ const plataformaBadge: Record<string, string> = {
   particular: 'bg-blue-50 text-blue-700',
 };
 
-export default function ReservasClient({ reservas, highlightId }: { reservas: Reserva[]; highlightId?: number }) {
+export default function ReservasClient({
+  reservas, highlightId, puedeCrear, puedeEditar, puedeEliminar, puedeSaldo,
+}: {
+  reservas: Reserva[];
+  highlightId?: number;
+  puedeCrear: boolean;
+  puedeEditar: boolean;
+  puedeEliminar: boolean;
+  puedeSaldo: boolean;
+}) {
   const [modal, setModal] = useState<'nueva' | Reserva | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
@@ -96,11 +105,13 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
           <h1 className="text-xl font-bold text-slate-900">Reservas</h1>
           <p className="text-sm text-slate-500">{filtradas.length} reservas</p>
         </div>
-        <button className="btn-primary" onClick={() => setModal('nueva')}>
-          <Plus size={16} />
-          <span className="hidden sm:inline">Nueva reserva</span>
-          <span className="sm:hidden">Nueva</span>
-        </button>
+        {puedeCrear && (
+          <button className="btn-primary" onClick={() => setModal('nueva')}>
+            <Plus size={16} />
+            <span className="hidden sm:inline">Nueva reserva</span>
+            <span className="sm:hidden">Nueva</span>
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -281,12 +292,16 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
                               <ScrollText size={14} />
                             </a>
                           )}
-                          <button onClick={() => setModal(r)} className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
-                            <Pencil size={14} />
-                          </button>
-                          <button onClick={() => handleEliminar(r.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
+                          {puedeEditar && (
+                            <button onClick={() => setModal(r)} className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
+                              <Pencil size={14} />
+                            </button>
+                          )}
+                          {puedeEliminar && (
+                            <button onClick={() => handleEliminar(r.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -407,7 +422,7 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
 
                 {/* Saldo toggle — visible si tiene saldo (pendiente o ya pagado) */}
                 {(r.saldo_pendiente ?? 0) > 0 && (
-                  <SaldoToggle reserva={r} />
+                  <SaldoToggle reserva={r} puedeEditar={puedeSaldo} />
                 )}
 
 
@@ -420,12 +435,16 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
                       <ScrollText size={13} /> Contrato
                     </a>
                   )}
-                  <button onClick={() => setModal(r)} className="btn-secondary text-xs py-1 flex-1">
-                    <Pencil size={13} /> Editar
-                  </button>
-                  <button onClick={() => handleEliminar(r.id)} className="btn-danger text-xs py-1 flex-1">
-                    <Trash2 size={13} /> Eliminar
-                  </button>
+                  {puedeEditar && (
+                    <button onClick={() => setModal(r)} className="btn-secondary text-xs py-1 flex-1">
+                      <Pencil size={13} /> Editar
+                    </button>
+                  )}
+                  {puedeEliminar && (
+                    <button onClick={() => handleEliminar(r.id)} className="btn-danger text-xs py-1 flex-1">
+                      <Trash2 size={13} /> Eliminar
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -448,7 +467,7 @@ export default function ReservasClient({ reservas, highlightId }: { reservas: Re
   );
 }
 
-function SaldoToggle({ reserva: r }: { reserva: Reserva }) {
+function SaldoToggle({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const [, startTransition] = useTransition();
   const hoy = new Date().toISOString().split('T')[0];
@@ -578,7 +597,19 @@ function SaldoToggle({ reserva: r }: { reserva: Reserva }) {
     );
   }
 
-  // Estado: saldo pendiente — botón prominente rojo
+  // Estado: saldo pendiente — botón prominente rojo (o info de solo lectura si no puede editar)
+  if (!puedeEditar) {
+    return (
+      <div className="w-full flex items-center justify-between gap-3 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <Circle size={18} className="text-red-300 shrink-0" />
+          <p className="text-sm font-bold leading-tight">Saldo pendiente de pago</p>
+        </div>
+        <span className="text-base font-bold shrink-0">{formatARS(r.saldo_pendiente ?? 0)}</span>
+      </div>
+    );
+  }
+
   return (
     <button
       onClick={() => setConfirming(true)}
