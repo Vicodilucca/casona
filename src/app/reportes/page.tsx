@@ -1,4 +1,6 @@
 export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
+import { requireAuth } from '@/lib/auth-guard';
 import {
   getReservas,
   getGastos,
@@ -16,6 +18,12 @@ export default async function ReportesPage({
 }: {
   searchParams: { desde?: string; hasta?: string };
 }) {
+  try {
+    await requireAuth(undefined, 'reportes');
+  } catch {
+    redirect('/');
+  }
+
   const { desde: defDesde, hasta: defHasta } = getCurrentMonth();
   const desde = searchParams.desde ?? defDesde;
   const hasta = searchParams.hasta ?? defHasta;

@@ -6,7 +6,8 @@ import { Plus, KeyRound, Trash2, Power, X } from 'lucide-react';
 import {
   crearUsuario, editarUsuario, setUsuarioActivo, resetearPasswordUsuario, eliminarUsuario,
 } from '@/actions/usuarios';
-import type { Usuario, Rol } from '@/lib/types';
+import type { Usuario, Rol, Seccion } from '@/lib/types';
+import { SECCIONES } from '@/lib/types';
 
 function formatDate(s: string | null): string {
   if (!s) return '—';
@@ -43,8 +44,15 @@ function UsuarioForm({
   const [nombre, setNombre] = useState(inicial?.nombre ?? '');
   const [email, setEmail] = useState(inicial?.email ?? '');
   const [rol, setRol] = useState<Rol>(inicial?.rol ?? 'admin');
+  const [permisos, setPermisos] = useState<Seccion[]>(inicial?.permisos ?? []);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function togglePermiso(seccion: Seccion) {
+    setPermisos((prev) =>
+      prev.includes(seccion) ? prev.filter((p) => p !== seccion) : [...prev, seccion]
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,10 +60,10 @@ function UsuarioForm({
     setSubmitting(true);
     try {
       if (inicial) {
-        await editarUsuario(inicial.id, nombre, email, rol);
+        await editarUsuario(inicial.id, nombre, email, rol, permisos);
         onSaved();
       } else {
-        const { tempPassword } = await crearUsuario(nombre, email, rol);
+        const { tempPassword } = await crearUsuario(nombre, email, rol, permisos);
         onSaved({ email, password: tempPassword });
       }
     } catch (err) {
@@ -94,6 +102,38 @@ function UsuarioForm({
           </select>
         </div>
       </div>
+
+      {rol === 'admin' ? (
+        <div>
+          <label className="block text-xs font-medium text-slate-500 mb-2">
+            Secciones a las que puede acceder
+          </label>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {SECCIONES.map((s) => (
+              <label
+                key={s.key}
+                className="flex items-start gap-2 border border-slate-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:bg-slate-50"
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={permisos.includes(s.key)}
+                  onChange={() => togglePermiso(s.key)}
+                />
+                <span>
+                  <span className="block font-medium text-slate-700">{s.label}</span>
+                  <span className="block text-xs text-slate-400">{s.descripcion}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+          Un superadmin tiene acceso a todas las secciones, incluida la gestión de usuarios.
+        </p>
+      )}
+
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       <div className="flex gap-2">
         <button
@@ -206,6 +246,7 @@ export default function UsuariosClient({
                 <th className="text-left px-4 py-2.5">Nombre</th>
                 <th className="text-left px-4 py-2.5">Email</th>
                 <th className="text-left px-4 py-2.5">Rol</th>
+                <th className="text-left px-4 py-2.5">Accesos</th>
                 <th className="text-left px-4 py-2.5">Estado</th>
                 <th className="text-left px-4 py-2.5">Último login</th>
                 <th className="text-right px-4 py-2.5">Acciones</th>
@@ -222,6 +263,21 @@ export default function UsuariosClient({
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${u.rol === 'superadmin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
                       {u.rol === 'superadmin' ? 'Superadmin' : 'Admin'}
                     </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {u.rol === 'superadmin' ? (
+                      <span className="text-xs text-slate-400">Todas</span>
+                    ) : u.permisos.length === 0 ? (
+                      <span className="text-xs text-slate-400">Sin accesos</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1 max-w-[220px]">
+                        {u.permisos.map((p) => (
+                          <span key={p} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-50 text-violet-700">
+                            {SECCIONES.find((s) => s.key === p)?.label ?? p}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-2.5">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${u.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>

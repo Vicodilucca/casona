@@ -25,6 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           consultasPendienteCount={consultasPendienteCount}
           usuarioNombre={usuario?.nombre ?? null}
           usuarioRol={usuario?.rol ?? null}
+          usuarioPermisos={usuario?.permisos ?? []}
         >
           {children}
         </AdminShell>

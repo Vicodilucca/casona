@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Navbar from './Navbar';
-import type { Rol } from '@/lib/types';
+import type { Rol, Seccion } from '@/lib/types';
 
 export default function AdminShell({
   children,
@@ -10,12 +10,14 @@ export default function AdminShell({
   consultasPendienteCount,
   usuarioNombre,
   usuarioRol,
+  usuarioPermisos,
 }: {
   children: React.ReactNode;
   saldoPendienteCount: number;
   consultasPendienteCount: number;
   usuarioNombre: string | null;
   usuarioRol: Rol | null;
+  usuarioPermisos: Seccion[];
 }) {
   const path = usePathname();
   const isPublic =
@@ -32,6 +34,7 @@ export default function AdminShell({
           consultasPendienteCount={consultasPendienteCount}
           usuarioNombre={usuarioNombre}
           usuarioRol={usuarioRol}
+          usuarioPermisos={usuarioPermisos}
         />
       </div>
       <main className="max-w-6xl mx-auto px-4 py-6 pb-24 md:pb-8 print:p-0 print:max-w-none">

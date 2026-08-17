@@ -74,11 +74,28 @@ export interface Consulta {
 
 export type Rol = 'superadmin' | 'admin';
 
+// Secciones de la app que se pueden habilitar/deshabilitar por usuario.
+// Un superadmin tiene acceso a todas siempre, incluidas "Usuarios" y
+// "Auditoría", que quedan fuera de este catálogo por ser exclusivas de
+// superadmin y no delegables.
+export type Seccion =
+  | 'reservas' | 'calendario' | 'gastos' | 'saldo' | 'reportes' | 'consultas';
+
+export const SECCIONES: { key: Seccion; label: string; descripcion: string }[] = [
+  { key: 'reservas',   label: 'Reservas',   descripcion: 'Ver, crear y editar reservas; descargar resumen y contrato en PDF' },
+  { key: 'calendario', label: 'Calendario', descripcion: 'Ver el calendario de ocupación' },
+  { key: 'gastos',     label: 'Gastos',     descripcion: 'Cargar, editar y eliminar gastos' },
+  { key: 'saldo',      label: 'Saldo',      descripcion: 'Ver y registrar cobros de saldos pendientes' },
+  { key: 'reportes',   label: 'Reportes',   descripcion: 'Ver reportes financieros y el balance con el socio' },
+  { key: 'consultas',  label: 'Consultas',  descripcion: 'Ver y gestionar consultas de huéspedes' },
+];
+
 export interface Usuario {
   id: number;
   nombre: string;
   email: string;
   rol: Rol;
+  permisos: Seccion[];
   activo: boolean;
   last_login_at: string | null;
   created_at: string;

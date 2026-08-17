@@ -8,16 +8,16 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import LogoutButton from './LogoutButton';
-import type { Rol } from '@/lib/types';
+import type { Rol, Seccion } from '@/lib/types';
 
 const links = [
-  { href: '/', label: 'Dashboard', icon: Home },
-  { href: '/reservas', label: 'Reservas', icon: CalendarDays },
-  { href: '/calendario', label: 'Calendario', icon: Calendar },
-  { href: '/gastos', label: 'Gastos', icon: Receipt },
-  { href: '/saldo', label: 'Saldo', icon: CircleDollarSign, badge: 'saldo' as const },
-  { href: '/reportes', label: 'Reportes', icon: BarChart3 },
-  { href: '/consultas', label: 'Consultas', icon: MessageSquare, badge: 'consultas' as const },
+  { href: '/', label: 'Dashboard', icon: Home, seccion: undefined },
+  { href: '/reservas', label: 'Reservas', icon: CalendarDays, seccion: 'reservas' as const },
+  { href: '/calendario', label: 'Calendario', icon: Calendar, seccion: 'calendario' as const },
+  { href: '/gastos', label: 'Gastos', icon: Receipt, seccion: 'gastos' as const },
+  { href: '/saldo', label: 'Saldo', icon: CircleDollarSign, badge: 'saldo' as const, seccion: 'saldo' as const },
+  { href: '/reportes', label: 'Reportes', icon: BarChart3, seccion: 'reportes' as const },
+  { href: '/consultas', label: 'Consultas', icon: MessageSquare, badge: 'consultas' as const, seccion: 'consultas' as const },
 ];
 
 const adminLinks = [
@@ -30,16 +30,21 @@ export default function Navbar({
   consultasPendienteCount,
   usuarioNombre,
   usuarioRol,
+  usuarioPermisos,
 }: {
   saldoPendienteCount: number;
   consultasPendienteCount: number;
   usuarioNombre: string;
   usuarioRol: Rol;
+  usuarioPermisos: Seccion[];
 }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const esSuperadmin = usuarioRol === 'superadmin';
   const visibleAdminLinks = esSuperadmin ? adminLinks : [];
+  const visibleLinks = links.filter(
+    (l) => !l.seccion || esSuperadmin || usuarioPermisos.includes(l.seccion)
+  );
 
   function getBadgeCount(badge?: 'saldo' | 'consultas') {
     if (badge === 'saldo') return saldoPendienteCount;
@@ -63,7 +68,7 @@ export default function Navbar({
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
-            {[...links, ...visibleAdminLinks].map(({ href, label, icon: Icon, badge }) => {
+            {[...visibleLinks, ...visibleAdminLinks].map(({ href, label, icon: Icon, badge }) => {
               const count = getBadgeCount(badge as 'saldo' | 'consultas' | undefined);
               return (
                 <Link
@@ -122,7 +127,7 @@ export default function Navbar({
               <UserCircle size={16} />
               {usuarioNombre}{esSuperadmin && ' · superadmin'}
             </Link>
-            {[...links, ...visibleAdminLinks].map(({ href, label, icon: Icon, badge }) => {
+            {[...visibleLinks, ...visibleAdminLinks].map(({ href, label, icon: Icon, badge }) => {
               const count = getBadgeCount(badge as 'saldo' | 'consultas' | undefined);
               return (
                 <Link
@@ -154,7 +159,7 @@ export default function Navbar({
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 flex">
-        {links.map(({ href, label, icon: Icon, badge }) => {
+        {visibleLinks.map(({ href, label, icon: Icon, badge }) => {
           const count = getBadgeCount(badge);
           return (
             <Link

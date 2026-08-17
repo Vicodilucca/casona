@@ -7,7 +7,7 @@ import { logAudit } from '@/lib/audit';
 import type { Reserva } from '@/lib/types';
 
 export async function agregarReserva(data: Omit<Reserva, 'id' | 'created_at'>) {
-  const usuario = await requireAuth();
+  const usuario = await requireAuth(undefined, 'reservas');
   const reserva = await createReserva(data);
   await logAudit(usuario, 'crear', 'reserva', reserva.id, { huesped: reserva.huesped });
   revalidatePath('/');
@@ -16,7 +16,7 @@ export async function agregarReserva(data: Omit<Reserva, 'id' | 'created_at'>) {
 }
 
 export async function editarReserva(id: number, data: Omit<Reserva, 'id' | 'created_at'>) {
-  const usuario = await requireAuth();
+  const usuario = await requireAuth(undefined, 'reservas');
   await updateReserva(id, data);
   await logAudit(usuario, 'editar', 'reserva', id, { huesped: data.huesped });
   revalidatePath('/');
@@ -25,7 +25,7 @@ export async function editarReserva(id: number, data: Omit<Reserva, 'id' | 'crea
 }
 
 export async function eliminarReserva(id: number) {
-  const usuario = await requireAuth();
+  const usuario = await requireAuth(undefined, 'reservas');
   await deleteReserva(id);
   await logAudit(usuario, 'eliminar', 'reserva', id, null);
   revalidatePath('/');
@@ -41,7 +41,7 @@ export async function pagarSaldo(
   cotizacionSaldo: number | null,
   montoLuz: number | null = null,
 ) {
-  const usuario = await requireAuth();
+  const usuario = await requireAuth(undefined, 'saldo');
   await marcarSaldoPagado(id, fecha, saldoYo, saldoSocio, cotizacionSaldo, montoLuz);
   await logAudit(usuario, 'pagar_saldo', 'reserva', id, { saldoYo, saldoSocio });
   revalidatePath('/');

@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic';
 import Image from 'next/image';
+import { redirect } from 'next/navigation';
+import { requireAuth } from '@/lib/auth-guard';
 import {
   getGastos,
   getSumIngresos,
@@ -38,6 +40,12 @@ export default async function ResumenEjecutivoPage({
 }: {
   searchParams: { anio?: string };
 }) {
+  try {
+    await requireAuth(undefined, 'reportes');
+  } catch {
+    redirect('/');
+  }
+
   const anio = parseInt(searchParams.anio ?? String(new Date().getFullYear()));
   const desde = `${anio}-01-01`;
   const hasta = `${anio}-12-31`;

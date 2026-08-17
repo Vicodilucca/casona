@@ -45,7 +45,7 @@ export async function enviarConsulta(data: Omit<Consulta, 'id' | 'created_at'>) 
 }
 
 export async function marcarConsultaEstado(id: number, estado: Consulta['estado']) {
-  const usuario = await requireAuth();
+  const usuario = await requireAuth(undefined, 'consultas');
   const result = await updateConsultaEstado(id, estado);
   await logAudit(usuario, 'cambiar_estado', 'consulta', id, { estado });
   return result;

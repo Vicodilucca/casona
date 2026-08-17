@@ -265,7 +265,7 @@ export async function getUsuarioPorEmail(email: string): Promise<(Usuario & { pa
 
 export async function getUsuarioPorId(id: number): Promise<Usuario | null> {
   const { rows } = await pool.query<Usuario>(
-    'SELECT id, nombre, email, rol, activo, last_login_at, created_at FROM usuarios WHERE id = $1',
+    'SELECT id, nombre, email, rol, permisos, activo, last_login_at, created_at FROM usuarios WHERE id = $1',
     [id],
   );
   return rows[0] ?? null;
@@ -273,7 +273,7 @@ export async function getUsuarioPorId(id: number): Promise<Usuario | null> {
 
 export async function getUsuarios(): Promise<Usuario[]> {
   const { rows } = await pool.query<Usuario>(
-    'SELECT id, nombre, email, rol, activo, last_login_at, created_at FROM usuarios ORDER BY created_at ASC',
+    'SELECT id, nombre, email, rol, permisos, activo, last_login_at, created_at FROM usuarios ORDER BY created_at ASC',
   );
   return rows;
 }
@@ -283,23 +283,24 @@ export async function crearUsuarioDb(data: {
   email: string;
   passwordHash: string;
   rol: 'superadmin' | 'admin';
+  permisos: string[];
 }): Promise<Usuario> {
   const { rows } = await pool.query<Usuario>(
-    `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
-     VALUES ($1, $2, $3, $4, true)
-     RETURNING id, nombre, email, rol, activo, last_login_at, created_at`,
-    [data.nombre.trim(), data.email.trim().toLowerCase(), data.passwordHash, data.rol],
+    `INSERT INTO usuarios (nombre, email, password_hash, rol, permisos, activo)
+     VALUES ($1, $2, $3, $4, $5, true)
+     RETURNING id, nombre, email, rol, permisos, activo, last_login_at, created_at`,
+    [data.nombre.trim(), data.email.trim().toLowerCase(), data.passwordHash, data.rol, data.permisos],
   );
   return rows[0];
 }
 
 export async function editarUsuarioDb(
   id: number,
-  data: { nombre: string; email: string; rol: 'superadmin' | 'admin' },
+  data: { nombre: string; email: string; rol: 'superadmin' | 'admin'; permisos: string[] },
 ): Promise<void> {
   await pool.query(
-    'UPDATE usuarios SET nombre = $1, email = $2, rol = $3 WHERE id = $4',
-    [data.nombre.trim(), data.email.trim().toLowerCase(), data.rol, id],
+    'UPDATE usuarios SET nombre = $1, email = $2, rol = $3, permisos = $4 WHERE id = $5',
+    [data.nombre.trim(), data.email.trim().toLowerCase(), data.rol, data.permisos, id],
   );
 }
 
