@@ -51,8 +51,9 @@ export default function ResumenPrint({ r }: { r: Reserva }) {
     ? cobradoParcialARS / r.cotizacion
     : null;
 
-  const saldoPendienteUSD = r.monto_usd != null
-    ? r.monto_usd / 2
+  const saldoPendienteARS = r.saldo_pendiente ?? 0;
+  const saldoPendienteUSD = saldoPendienteARS > 0 && r.cotizacion && r.cotizacion > 0
+    ? saldoPendienteARS / r.cotizacion
     : null;
 
   const saldoARS = (r.saldo_yo ?? 0) + (r.saldo_socio ?? 0);
@@ -144,8 +145,12 @@ export default function ResumenPrint({ r }: { r: Reserva }) {
                     : undefined
                 }
               />
-              {!r.saldo_pagado && saldoPendienteUSD != null && saldoPendienteUSD > 0 && (
-                <Row label="Saldo pendiente de pago" value={fmtUSD(saldoPendienteUSD)} bold />
+              {!r.saldo_pagado && saldoPendienteARS > 0 && (
+                <Row
+                  label="Saldo pendiente de pago"
+                  value={saldoPendienteUSD != null ? fmtUSD(saldoPendienteUSD) : fmtARS(saldoPendienteARS)}
+                  bold
+                />
               )}
               {!r.saldo_pagado && r.plataforma !== 'airbnb' && (
                 <Row label="+ Consumo eléctrico" value="A confirmar al egreso" />
