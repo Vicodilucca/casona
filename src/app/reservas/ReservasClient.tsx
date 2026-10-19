@@ -4,11 +4,12 @@ import { useState, useTransition, useEffect, useRef } from 'react';
 import { Plus, Pencil, Trash2, Search, Users, PawPrint, CheckCircle2, Circle, RefreshCw, FileText, ScrollText } from 'lucide-react';
 import Modal from '@/components/Modal';
 import ReservaForm from '@/components/ReservaForm';
+import ComprobanteInput from '@/components/ComprobanteInput';
 import MontoInput from '@/components/MontoInput';
 import { eliminarReserva, pagarSaldo } from '@/actions/reservas';
 import { formatARS, formatDate, getNights } from '@/lib/utils';
 import { SOCIOS } from '@/lib/types';
-import type { Reserva } from '@/lib/types';
+import type { Reserva, CobroLuz } from '@/lib/types';
 
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const MONTH_BG = [
@@ -32,15 +33,28 @@ const plataformaBadge: Record<string, string> = {
 };
 
 export default function ReservasClient({
-  reservas, highlightId, puedeCrear, puedeEditar, puedeEliminar, puedeSaldo,
+  reservas, cobrosLuz, highlightId, puedeCrear, puedeEditar, puedeEliminar, puedeSaldo,
 }: {
   reservas: Reserva[];
+  cobrosLuz: CobroLuz[];
   highlightId?: number;
   puedeCrear: boolean;
   puedeEditar: boolean;
   puedeEliminar: boolean;
   puedeSaldo: boolean;
 }) {
+  const luzPorReserva = new Map(cobrosLuz.map(c => [c.reserva_id, c]));
+  const luzRecibida = (r: Reserva, socio: 'yo' | 'socio') => {
+    const luz = luzPorReserva.get(r.id);
+    return luz?.cobrado_por === socio ? luz.monto : 0;
+  };
+  const detalleLuz = (r: Reserva) => {
+    const luz = luzPorReserva.get(r.id);
+    return <div className="text-xs mt-1 space-y-1">
+      {luz && <p className="text-amber-700">⚡ Luz adicional: {formatARS(luz.monto)} · {formatDate(luz.fecha)} · {luz.cobrado_por === 'yo' ? 'María Victoria' : 'Luis'}</p>}
+      {(puedeEditar || puedeSaldo) && r.estado === 'confirmada' && <a href={`/reservas/${r.id}/luz`} className="text-amber-700 underline">{luz ? 'Editar cobro de luz' : 'Registrar cobro de luz'}</a>}
+    </div>;
+  };
   const [modal, setModal] = useState<'nueva' | Reserva | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
@@ -91,7 +105,7 @@ export default function ReservasClient({
 
   const totalFiltrado = filtradas
     .filter((r) => r.estado === 'confirmada')
-    .reduce((sum, r) => sum + r.monto, 0);
+    .reduce((sum, r) => sum + r.monto + (luzPorReserva.get(r.id)?.monto ?? 0), 0);
 
   const handleEliminar = (id: number) => {
     if (!confirm('¿Eliminar esta reserva?')) return;
@@ -214,6 +228,8 @@ export default function ReservasClient({
                         <p className={`font-medium ${
                           tieneSaldo ? 'text-red-700' : estadiaCompleta ? 'text-green-700' : 'text-slate-800'
                         }`}>{r.huesped}</p>
+                        <a href={`/reservas/${r.id}/comprobantes`} className="text-xs text-blue-600 underline">Comprobantes</a>
+                        {detalleLuz(r)}
                         {r.dni && <p className="text-xs text-slate-400">DNI {r.dni}</p>}
                         {tieneSaldo && (
                           <p className="text-xs font-semibold text-red-500 mt-0.5">● Saldo pendiente: {formatARS(r.saldo_pendiente ?? 0)}</p>
@@ -249,7 +265,7 @@ export default function ReservasClient({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right text-green-700 font-medium">
-                        {formatARS((r.monto_yo ?? 0) + (estadiaCompleta ? (r.saldo_yo ?? 0) : 0))}
+                        {formatARS((r.monto_yo ?? 0) + (estadiaCompleta ? (r.saldo_yo ?? 0) : 0) + luzRecibida(r, 'yo'))}
                         {estadiaCompleta && (
                           <p className="text-xs text-green-400 font-normal">
                             {(r.monto_yo ?? 0) > 0 && <span>Parcial {formatARS(r.monto_yo ?? 0)}</span>}
@@ -259,7 +275,7 @@ export default function ReservasClient({
                         )}
                       </td>
                       <td className="px-4 py-3 text-right text-blue-700 font-medium">
-                        {formatARS((r.monto_socio ?? 0) + (estadiaCompleta ? (r.saldo_socio ?? 0) : 0))}
+                        {formatARS((r.monto_socio ?? 0) + (estadiaCompleta ? (r.saldo_socio ?? 0) : 0) + luzRecibida(r, 'socio'))}
                         {estadiaCompleta && (
                           <p className="text-xs text-blue-400 font-normal">
                             {(r.monto_socio ?? 0) > 0 && <span>Parcial {formatARS(r.monto_socio ?? 0)}</span>}
@@ -279,7 +295,7 @@ export default function ReservasClient({
                       <td className="px-4 py-3 text-right font-bold text-slate-800">
                         {r.monto_usd != null
                           ? <span className="text-blue-700">USD {r.monto_usd.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
-                          : formatARS(r.monto)
+                          : formatARS(r.monto + (luzPorReserva.get(r.id)?.monto ?? 0))
                         }
                       </td>
                       <td className="px-4 py-3">
@@ -342,13 +358,15 @@ export default function ReservasClient({
                     }`}>
                       {r.huesped}
                     </p>
+                    <a href={`/reservas/${r.id}/comprobantes`} className="text-xs text-blue-600 underline">Comprobantes de pago</a>
+                    {detalleLuz(r)}
                     {r.dni && <p className="text-xs text-slate-400">DNI {r.dni}</p>}
                     {r.direccion && <p className="text-xs text-slate-400">{r.direccion}</p>}
                   </div>
                   <p className="font-bold text-base">
                     {r.monto_usd != null
                       ? <span className="text-blue-700">USD {r.monto_usd.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
-                      : <span className="text-slate-800">{formatARS(r.monto)}</span>
+                      : <span className="text-slate-800">{formatARS(r.monto + (luzPorReserva.get(r.id)?.monto ?? 0))}</span>
                     }
                   </p>
                 </div>
@@ -389,12 +407,12 @@ export default function ReservasClient({
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-green-50 rounded-lg px-2 py-1.5">
                         <p className="text-green-600 font-medium">Cobré yo · total</p>
-                        <p className="text-green-800 font-bold">{formatARS((r.monto_yo ?? 0) + (r.saldo_yo ?? 0))}</p>
+                        <p className="text-green-800 font-bold">{formatARS((r.monto_yo ?? 0) + (r.saldo_yo ?? 0) + luzRecibida(r, 'yo'))}</p>
                         <p className="text-green-500 mt-0.5">Parcial {formatARS(r.monto_yo ?? 0)} + Saldo {formatARS(r.saldo_yo ?? 0)}</p>
                       </div>
                       <div className="bg-blue-50 rounded-lg px-2 py-1.5">
                         <p className="text-blue-600 font-medium">Cobró Luis · total</p>
-                        <p className="text-blue-800 font-bold">{formatARS((r.monto_socio ?? 0) + (r.saldo_socio ?? 0))}</p>
+                        <p className="text-blue-800 font-bold">{formatARS((r.monto_socio ?? 0) + (r.saldo_socio ?? 0) + luzRecibida(r, 'socio'))}</p>
                         <p className="text-blue-500 mt-0.5">Parcial {formatARS(r.monto_socio ?? 0)} + Saldo {formatARS(r.saldo_socio ?? 0)}</p>
                       </div>
                     </div>
@@ -409,11 +427,11 @@ export default function ReservasClient({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-green-50 rounded-lg px-2 py-1.5">
                       <p className="text-green-600 font-medium">Cobré yo</p>
-                      <p className="text-green-800 font-bold">{formatARS(r.monto_yo ?? 0)}</p>
+                      <p className="text-green-800 font-bold">{formatARS((r.monto_yo ?? 0) + luzRecibida(r, 'yo'))}</p>
                     </div>
                     <div className="bg-blue-50 rounded-lg px-2 py-1.5">
                       <p className="text-blue-600 font-medium">Cobró Luis</p>
-                      <p className="text-blue-800 font-bold">{formatARS(r.monto_socio ?? 0)}</p>
+                      <p className="text-blue-800 font-bold">{formatARS((r.monto_socio ?? 0) + luzRecibida(r, 'socio'))}</p>
                     </div>
                   </div>
                 )}
@@ -469,7 +487,9 @@ export default function ReservasClient({
 
 function SaldoToggle({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar: boolean }) {
   const [confirming, setConfirming] = useState(false);
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
+  const [comprobante, setComprobante] = useState<File | null>(null);
+  const [error, setError] = useState('');
   const hoy = new Date().toISOString().split('T')[0];
   const [fechaCobro, setFechaCobro] = useState(hoy);
   const [cotizacionSaldo, setCotizacionSaldo] = useState('');
@@ -495,9 +515,17 @@ function SaldoToggle({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEdita
   };
 
   const handlePagar = () => {
+    setError('');
     startTransition(async () => {
-      await pagarSaldo(r.id, fechaCobro, saldoYoVal, saldoSocioVal, cotizacionVal || null);
-      setConfirming(false);
+      try {
+        const adjuntos = new FormData();
+        if (comprobante) adjuntos.set('saldo', comprobante);
+        await pagarSaldo(r.id, fechaCobro, saldoYoVal, saldoSocioVal, cotizacionVal || null, null, adjuntos);
+        setConfirming(false);
+        setComprobante(null);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'No se pudo registrar el cobro. Intentá de nuevo.');
+      }
     });
   };
 
@@ -577,6 +605,10 @@ function SaldoToggle({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEdita
           </div>
         </div>
 
+        <ComprobanteInput label="Comprobante de transferencia del saldo" value={comprobante} onChange={setComprobante} disabled={pending} />
+        <a href={`/reservas/${r.id}/comprobantes`} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">Ver comprobantes guardados</a>
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+
         {totalSaldo > 0 && (
           <div className="rounded-lg bg-white border border-green-200 px-3 py-2 flex justify-between items-center">
             <span className="text-sm text-slate-500">Total saldo cobrado</span>
@@ -588,7 +620,7 @@ function SaldoToggle({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEdita
           <button className="btn-secondary flex-1 justify-center text-xs py-1.5" onClick={() => setConfirming(false)}>
             Cancelar
           </button>
-          <button onClick={handlePagar} disabled={totalSaldo === 0}
+          <button onClick={handlePagar} disabled={pending || totalSaldo === 0}
             className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-sm font-bold text-white hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50">
             <CheckCircle2 size={15} /> Confirmar cobro
           </button>

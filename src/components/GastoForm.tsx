@@ -31,18 +31,36 @@ export default function GastoForm({ initial, onClose }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [aviso, setAviso] = useState('');
   const [scanned, setScanned] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const subcats = CATEGORIAS[form.categoria] ?? [];
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setScanning(true);
+  const handleFile = async (file?: File) => {
+    if (!file || scanning || pending) return;
+    if (!['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)
+      && !(file.type === '' && /\.(pdf|jpe?g|png|gif|webp)$/i.test(file.name))) {
+      setError('Usá un PDF o una imagen JPG, PNG, GIF o WebP.');
+      return;
+    }
+    if (!file.size || file.size > 3 * 1024 * 1024) {
+      setError('El comprobante debe pesar entre 1 byte y 3 MB.');
+      return;
+    }
+    setArchivo(file);
+    setAviso('');
     setScanned(false);
     setError('');
+    // Adjuntar a un gasto existente conserva su categoría y todos sus datos.
+    if (initial) {
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+    setScanning(true);
     try {
       const fd = new FormData();
       fd.append('file', file);
@@ -60,7 +78,8 @@ export default function GastoForm({ initial, onClose }: Props) {
       }));
       setScanned(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'No se pudo leer el comprobante.');
+      const motivo = err instanceof Error ? err.message : 'No se pudieron completar los datos automáticamente.';
+      setAviso(`${motivo} Completá los datos manualmente; el archivo sigue adjunto y se guardará con el gasto.`);
     } finally {
       setScanning(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -84,48 +103,95 @@ export default function GastoForm({ initial, onClose }: Props) {
       tipo:         form.tipo as Gasto['tipo'],
     };
     startTransition(async () => {
-      if (initial) await editarGasto(initial.id, data);
-      else         await agregarGasto(data);
-      onClose();
+      try {
+        const adjunto = new FormData();
+        if (archivo) adjunto.append('file', archivo);
+        if (initial) await editarGasto(initial.id, data, adjunto);
+        else await agregarGasto(data, adjunto);
+        onClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo guardar el gasto. Intentá de nuevo.');
+      }
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
 
-      {/* Escanear comprobante — solo en modo nuevo */}
-      {!initial && (
+      {/* Adjuntar comprobantes en gastos nuevos y existentes */}
         <div>
+          <p className="label">Ticket o comprobante de pago</p>
           <input
             ref={fileRef}
             type="file"
-            accept="image/*,image/heic,.pdf"
-            capture="environment"
+            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
             className="hidden"
-            onChange={handleFile}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              void handleFile(file);
+            }}
           />
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            disabled={scanning}
-            className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 text-sm font-medium transition-colors
-              ${scanning
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.dataTransfer.dropEffect = scanning || pending ? 'none' : 'copy';
+              if (!scanning && !pending) setDragging(true);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragging(false);
+              if (scanning || pending) return;
+              if (e.dataTransfer.files.length > 1) {
+                setError('Arrastrá una sola boleta por vez.');
+                return;
+              }
+              void handleFile(e.dataTransfer.files[0]);
+            }}
+            disabled={scanning || pending}
+            className={`w-full min-h-28 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-5 text-sm font-medium transition-colors
+              ${dragging
+                ? 'border-blue-500 bg-blue-100 text-blue-700 ring-2 ring-blue-200'
+                : scanning
                 ? 'border-blue-300 bg-blue-50 text-blue-500 cursor-wait'
                 : scanned
                   ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
                   : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-500 hover:text-blue-600'
               }`}
           >
-            {scanning ? (
+            <span className="flex items-center justify-center gap-2">
+            {dragging ? (
+              <><ScanLine size={16} /> Soltá la boleta aquí</>
+            ) : scanning ? (
               <><Loader2 size={16} className="animate-spin" /> Leyendo comprobante...</>
+            ) : initial && archivo ? (
+              <><CheckCircle2 size={16} /> Ticket adjunto — guardar cambios para subirlo</>
             ) : scanned ? (
               <><CheckCircle2 size={16} /> Datos cargados — revisá y completá quién pagó</>
             ) : (
-              <><ScanLine size={16} /> Subir ticket / boleta / factura</>
+              <><ScanLine size={16} /> Adjuntar comprobante de pago</>
             )}
+            </span>
+            <span className="text-xs font-normal">Arrastrá y soltá aquí una boleta, ticket, factura o comprobante de transferencia, o hacé clic para elegir el archivo.</span>
           </button>
+          <p className="text-xs text-slate-500 mt-2">PDF, JPG, PNG, GIF o WebP · Hasta 3 MB. Se guarda al guardar el gasto.</p>
+          {initial && <p className="text-xs text-slate-500 mt-1">Podés añadir un ticket en cualquier categoría sin modificar los datos del gasto.</p>}
+          {archivo && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+              <span className="break-all">Adjunto: {archivo.name}</span>
+              <button type="button" className="text-red-600" disabled={scanning || pending} onClick={() => { setArchivo(null); setScanned(false); setAviso(''); }}>Quitar</button>
+            </div>
+          )}
+          {initial && <a className="text-sm text-blue-600" href={`/gastos/pagos?gasto=${initial.id}`} target="_blank" rel="noreferrer">Ver comprobantes guardados</a>}
+          {aviso && <p role="status" className="text-sm text-amber-700 mt-2">{aviso}</p>}
         </div>
-      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -187,7 +253,7 @@ export default function GastoForm({ initial, onClose }: Props) {
 
       <div className="flex gap-3 pt-2">
         <button type="button" className="btn-secondary flex-1" onClick={onClose}>Cancelar</button>
-        <button type="submit" className="btn-primary flex-1" disabled={pending}>
+        <button type="submit" className="btn-primary flex-1" disabled={pending || scanning}>
           {pending ? 'Guardando...' : initial ? 'Guardar cambios' : 'Agregar gasto'}
         </button>
       </div>

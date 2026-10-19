@@ -137,3 +137,17 @@ export interface AuditLogEntry {
   ip: string | null;
   created_at: string;
 }
+
+export interface GastoAutor {
+  gasto_id: number;
+  usuario_id: number | null;
+  nombre: string | null;
+  cargado_el: string;
+}
+
+export interface CobroLuz {
+  reserva_id: number;
+  monto: number;
+  fecha: string;
+  cobrado_por: 'yo' | 'socio';
+}

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { requireAuth } from '@/lib/auth-guard';
 import {
   getReservas,
+  getCobrosLuz,
   getGastos,
   getSumIngresos,
   getSumGastos,
@@ -51,7 +52,7 @@ export default async function ReportesPage({
   const neto = ingresos - gastosTotales;
   const reservasConfirmadas = todasReservas.filter((r) => r.estado === 'confirmada');
 
-  const entradasIngreso: { reserva: Reserva; tipo: 'anticipo' | 'saldo'; fecha: string; yo: number; socio: number }[] = [];
+  const entradasIngreso: { reserva: Reserva; tipo: 'anticipo' | 'saldo' | 'luz'; fecha: string; yo: number; socio: number }[] = [];
   for (const r of reservasConfirmadas) {
     if (r.fecha_reserva >= desde && r.fecha_reserva <= hasta && ((r.monto_yo ?? 0) + (r.monto_socio ?? 0) > 0)) {
       entradasIngreso.push({ reserva: r, tipo: 'anticipo', fecha: r.fecha_reserva, yo: r.monto_yo ?? 0, socio: r.monto_socio ?? 0 });
@@ -59,6 +60,12 @@ export default async function ReportesPage({
     if (r.saldo_pagado && r.fecha_pago_saldo && r.fecha_pago_saldo >= desde && r.fecha_pago_saldo <= hasta && ((r.saldo_yo ?? 0) + (r.saldo_socio ?? 0) > 0)) {
       entradasIngreso.push({ reserva: r, tipo: 'saldo', fecha: r.fecha_pago_saldo!, yo: r.saldo_yo ?? 0, socio: r.saldo_socio ?? 0 });
     }
+  }
+  const cobrosLuz = await getCobrosLuz(desde, hasta);
+  for (const luz of cobrosLuz) {
+    const reserva = reservasConfirmadas.find(r => r.id === luz.reserva_id);
+    if (reserva) entradasIngreso.push({ reserva, tipo: 'luz', fecha: luz.fecha,
+      yo: luz.cobrado_por === 'yo' ? luz.monto : 0, socio: luz.cobrado_por === 'socio' ? luz.monto : 0 });
   }
   entradasIngreso.sort((a, b) => a.fecha.localeCompare(b.fecha));
   const reservasUnicas = new Set(entradasIngreso.map((e) => e.reserva.id)).size;

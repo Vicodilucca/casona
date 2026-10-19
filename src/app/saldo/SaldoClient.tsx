@@ -5,6 +5,7 @@ import { CheckCircle2, Clock, CalendarDays, User, DollarSign, RefreshCw } from '
 import { pagarSaldo } from '@/actions/reservas';
 import { formatARS, formatDate, getNights } from '@/lib/utils';
 import { SOCIOS } from '@/lib/types';
+import ComprobanteInput from '@/components/ComprobanteInput';
 import MontoInput from '@/components/MontoInput';
 import type { Reserva } from '@/lib/types';
 
@@ -46,7 +47,9 @@ export default function SaldoClient({ pendientes, puedeEditar }: { pendientes: R
 
 function SaldoCard({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar: boolean }) {
   const [confirming, setConfirming] = useState(false);
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
+  const [comprobante, setComprobante] = useState<File | null>(null);
+  const [error, setError] = useState('');
 
   const hoy = new Date().toISOString().split('T')[0];
   const [fechaCobro, setFechaCobro] = useState(hoy);
@@ -95,9 +98,17 @@ function SaldoCard({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar:
   );
 
   const handlePagar = () => {
+    setError('');
     startTransition(async () => {
-      await pagarSaldo(r.id, fechaCobro, saldoYoVal, saldoSocioVal + luzSocioVal, cotizacionVal || null, luzSocioVal || null);
-      setConfirming(false);
+      try {
+        const adjuntos = new FormData();
+        if (comprobante) adjuntos.set('saldo', comprobante);
+        await pagarSaldo(r.id, fechaCobro, saldoYoVal, saldoSocioVal + luzSocioVal, cotizacionVal || null, luzSocioVal || null, adjuntos);
+        setConfirming(false);
+        setComprobante(null);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'No se pudo registrar el cobro. Intentá de nuevo.');
+      }
     });
   };
 
@@ -163,6 +174,8 @@ function SaldoCard({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar:
           </div>
         </div>
       </div>
+
+      <a href={`/reservas/${r.id}/comprobantes`} className="text-sm text-blue-600 underline">Ver comprobantes de esta reserva</a>
 
       {/* Confirmar cobro */}
       {!puedeEditar ? (
@@ -253,6 +266,10 @@ function SaldoCard({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar:
             </div>
           )}
 
+        <ComprobanteInput label="Comprobante de transferencia del saldo" value={comprobante} onChange={setComprobante} disabled={pending} />
+        <a href={`/reservas/${r.id}/comprobantes`} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">Ver comprobantes guardados</a>
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+
           {totalSaldo > 0 && (
             <div className="rounded-lg bg-white border border-green-200 px-3 py-2 flex justify-between items-center">
               <span className="text-sm text-slate-500">Total saldo cobrado</span>
@@ -268,7 +285,7 @@ function SaldoCard({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar:
             <button
               className="flex-1 justify-center inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors disabled:opacity-50"
               onClick={handlePagar}
-              disabled={totalSaldo === 0}
+              disabled={pending || totalSaldo === 0}
             >
               <CheckCircle2 size={15} /> Confirmar cobro
             </button>

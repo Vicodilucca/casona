@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Trash2, Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '@/components/Modal';
 import GastoForm from '@/components/GastoForm';
 import { eliminarGasto } from '@/actions/gastos';
 import { formatARS, formatDate } from '@/lib/utils';
 import { CATEGORIAS } from '@/lib/types';
-import type { Gasto } from '@/lib/types';
+import type { Gasto, GastoAutor } from '@/lib/types';
 
 const MONTH_COLORS = [
   'border-l-sky-400',
@@ -46,15 +47,30 @@ function monthIdx(fecha: string) {
 }
 
 export default function GastosClient({
-  gastos, puedeCrear, puedeEditar, puedeEliminar,
+  gastos, puedeCrear, puedeEditar, puedeEliminar, autores, puedeAuditar, gastoSeleccionado,
 }: {
   gastos: Gasto[];
+  autores: GastoAutor[];
+  puedeAuditar: boolean;
+  gastoSeleccionado: string;
   puedeCrear: boolean;
   puedeEditar: boolean;
   puedeEliminar: boolean;
 }) {
   const [modal, setModal] = useState<'nuevo' | Gasto | null>(null);
   const [busqueda, setBusqueda] = useState('');
+  const [filtroAutor, setFiltroAutor] = useState('');
+  const [filtroId, setFiltroId] = useState(gastoSeleccionado);
+  const router = useRouter();
+  useEffect(() => { setFiltroId(gastoSeleccionado); }, [gastoSeleccionado]);
+  useEffect(() => {
+    const actualizar = () => { if (document.visibilityState === 'visible') router.refresh(); };
+    window.addEventListener('focus', actualizar);
+    const timer = window.setInterval(actualizar, 60000);
+    return () => { window.removeEventListener('focus', actualizar); window.clearInterval(timer); };
+  }, [router]);
+  const autoresPorGasto = new Map(autores.map(a => [a.gasto_id, a]));
+  const usuariosAutores = Array.from(new Map(autores.filter(a => a.usuario_id != null).map(a => [String(a.usuario_id), a.nombre ?? 'Usuario sin nombre'])).entries());
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroPagador, setFiltroPagador] = useState('');
@@ -75,15 +91,20 @@ export default function GastosClient({
     const matchTipo    = !filtroTipo      || g.tipo === filtroTipo;
     const matchPagador = !filtroPagador   || g.pagado_por === filtroPagador;
     const matchPeriodo = !prefijo         || g.fecha.startsWith(prefijo);
-    return matchBusqueda && matchCat && matchTipo && matchPagador && matchPeriodo;
+    const autor = autoresPorGasto.get(g.id);
+    const matchAutor = !filtroAutor || String(autor?.usuario_id) === filtroAutor;
+    const matchId = !filtroId || String(g.id) === filtroId;
+    return matchAutor && matchId && matchBusqueda && matchCat && matchTipo && matchPagador && matchPeriodo;
   });
 
   const totalFiltrado = filtrados.reduce((sum, g) => sum + g.monto, 0);
   const totalYo       = filtrados.filter((g) => g.pagado_por === 'yo').reduce((s, g) => s + g.monto, 0);
   const totalSocio    = filtrados.filter((g) => g.pagado_por === 'socio').reduce((s, g) => s + g.monto, 0);
 
-  const hayFiltros = busqueda || filtroCategoria || filtroTipo || filtroPagador || prefijo;
+  const hayFiltros = busqueda || filtroCategoria || filtroTipo || filtroPagador || prefijo || filtroAutor || filtroId;
   const limpiar = () => {
+    setFiltroAutor(''); setFiltroId('');
+    if (gastoSeleccionado) router.replace('/gastos');
     setBusqueda(''); setFiltroCategoria(''); setFiltroTipo('');
     setFiltroPagador(''); setFiltroMes(''); setFiltroAnio('');
   };
@@ -95,6 +116,16 @@ export default function GastosClient({
   const handleEliminar = (id: number) => {
     if (!confirm('¿Eliminar este gasto?')) return;
     startTransition(() => eliminarGasto(id));
+  };
+
+  const detalleAutor = (g: Gasto) => {
+    if (!puedeAuditar) return null;
+    const autor = autoresPorGasto.get(g.id);
+    return <div className="text-xs text-slate-500 mt-1 space-y-1">
+      <p>#{g.id} · Cargado por: {autor?.nombre ?? 'Sin registro de autor'}</p>
+      {autor && <p>Fecha de carga: {new Date(autor.cargado_el).toLocaleString('es-AR')}</p>}
+      {autor?.usuario_id != null && <a href={`/auditoria?usuario=${autor.usuario_id}`} className="text-blue-600 underline">Ver sus movimientos</a>}
+    </div>;
   };
 
   return (
@@ -112,6 +143,15 @@ export default function GastosClient({
           </button>
         )}
       </div>
+
+      <a href="/gastos/pagos" className="btn-secondary inline-flex">📁 Pagos · Ver comprobantes</a>
+
+      {puedeAuditar && <p className="text-sm text-slate-500">La fecha corresponde al gasto. «Cargado por» indica quién lo registró; «Pagado por» indica quién abonó.</p>}
+      <div className="flex flex-wrap gap-3 text-sm">
+        <button type="button" onClick={() => router.refresh()} className="text-blue-600 underline">Actualizar gastos</button>
+        {puedeAuditar && <a className="text-blue-600 underline" href={filtroAutor ? `/auditoria?usuario=${filtroAutor}` : '/auditoria'}>Ver todos los movimientos{filtroAutor ? ` de ${usuariosAutores.find(([id]) => id === filtroAutor)?.[1] ?? 'este usuario'}` : ' por usuario'}</a>}
+      </div>
+      {filtroId && <p className="text-sm text-blue-700">Mostrando gasto #{filtroId}. Si fue eliminado, su movimiento sigue en Auditoría.</p>}
 
       {/* Filtros */}
       <div className="space-y-2">
@@ -158,6 +198,11 @@ export default function GastosClient({
             <option value="yo">Pagados por mí</option>
             <option value="socio">Pagados por Luis</option>
           </select>
+
+          {puedeAuditar && <select aria-label="Cargado por" className="input w-auto" value={filtroAutor} onChange={e => setFiltroAutor(e.target.value)}>
+            <option value="">Cargados por todos</option>
+            {usuariosAutores.map(([id, nombre]) => <option key={id} value={id}>{nombre}</option>)}
+          </select>}
 
           {/* Búsqueda */}
           <div className="relative flex-1 min-w-[140px]">
@@ -219,7 +264,7 @@ export default function GastosClient({
                       <span className={`inline-block text-xs font-semibold rounded px-1.5 py-0.5 mr-1.5 ${MONTH_BG[mi]}`}>{MESES[mi]}</span>
                       {formatDate(g.fecha)}
                     </td>
-                    <td className="px-4 py-3 text-slate-800">{g.descripcion ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-800">{g.descripcion ?? '—'}{detalleAutor(g)}</td>
                     <td className="px-4 py-3 text-slate-600">{g.categoria}</td>
                     <td className="px-4 py-3 text-slate-500">{g.subcategoria ?? '—'}</td>
                     <td className="px-4 py-3">
@@ -272,6 +317,7 @@ export default function GastosClient({
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-medium text-slate-800 truncate">{g.descripcion || g.categoria}</p>
+                  {detalleAutor(g)}
                   <p className="text-xs text-slate-500">
                     <span className={`inline-block font-semibold rounded px-1 mr-1 ${MONTH_BG[mi]}`}>{MESES[mi]}</span>
                     {formatDate(g.fecha)} · {g.categoria}{g.subcategoria ? ` · ${g.subcategoria}` : ''}

@@ -10,7 +10,7 @@ import { TrendingUp, TrendingDown, Wallet, ArrowRightLeft, ChevronLeft, ChevronR
 
 interface EntradaIngreso {
   reserva: Reserva;
-  tipo: 'anticipo' | 'saldo';
+  tipo: 'anticipo' | 'saldo' | 'luz';
   fecha: string;
   yo: number;
   socio: number;
@@ -362,7 +362,7 @@ export default function ReportesClient({ data }: { data: ReportData }) {
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${e.tipo === 'anticipo' ? 'bg-violet-100 text-violet-700' : 'bg-green-100 text-green-700'}`}>
-                          {e.tipo === 'anticipo' ? 'Seña' : 'Saldo'}
+                          {e.tipo === 'anticipo' ? 'Seña' : e.tipo === 'luz' ? 'Luz' : 'Saldo'}
                         </span>
                         <p className="font-medium text-slate-800">{r.huesped}</p>
                       </div>

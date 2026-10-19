@@ -1,7 +1,7 @@
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 import pg from 'pg';
 import dns from 'dns';
-import type { Reserva, Gasto, Consulta, Usuario, AuditLogEntry } from './types';
+import type { Reserva, Gasto, Consulta, Usuario, AuditLogEntry, GastoAutor } from './types';
 
 // Force IPv4 to avoid ENETUNREACH on IPv6-only Supabase endpoints
 dns.setDefaultResultOrder('ipv4first');
@@ -38,45 +38,52 @@ export async function getReservas(desde?: string, hasta?: string): Promise<Reser
   return rows;
 }
 
-export async function createReserva(data: Omit<Reserva, 'id' | 'created_at'>): Promise<Reserva> {
-  const { rows } = await pool.query<Reserva>(
-    `INSERT INTO reservas (huesped, dni, direccion, adultos, ninos, mascotas,
-       fecha_inicio, hora_inicio, fecha_fin, hora_fin, fecha_reserva, plataforma,
-       monto_usd, cotizacion, monto, monto_yo, monto_socio, saldo_pendiente,
-       saldo_yo, saldo_socio, monto_luz, cotizacion_saldo, saldo_pagado,
-       fecha_pago_saldo, estado, notas)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
-     RETURNING *`,
-    [
-      data.huesped, data.dni, data.direccion, data.adultos, data.ninos, data.mascotas,
-      data.fecha_inicio, data.hora_inicio, data.fecha_fin, data.hora_fin,
-      data.fecha_reserva, data.plataforma, data.monto_usd, data.cotizacion,
-      data.monto, data.monto_yo, data.monto_socio, data.saldo_pendiente,
-      data.saldo_yo, data.saldo_socio, data.monto_luz, data.cotizacion_saldo,
-      data.saldo_pagado, data.fecha_pago_saldo ?? null, data.estado, data.notas,
-    ],
-  );
-  return rows[0];
+export async function createReserva(data: Omit<Reserva, 'id' | 'created_at'>, archivos: ComprobanteReserva[] = []): Promise<Reserva> {
+  return transaccionReserva(archivos, async (client) => {
+    const { rows } = await client.query<Reserva>(
+      `INSERT INTO reservas (huesped, dni, direccion, adultos, ninos, mascotas,
+         fecha_inicio, hora_inicio, fecha_fin, hora_fin, fecha_reserva, plataforma,
+         monto_usd, cotizacion, monto, monto_yo, monto_socio, saldo_pendiente,
+         saldo_yo, saldo_socio, monto_luz, cotizacion_saldo, saldo_pagado,
+         fecha_pago_saldo, estado, notas)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
+       RETURNING *`,
+      [
+        data.huesped, data.dni, data.direccion, data.adultos, data.ninos, data.mascotas,
+        data.fecha_inicio, data.hora_inicio, data.fecha_fin, data.hora_fin,
+        data.fecha_reserva, data.plataforma, data.monto_usd, data.cotizacion,
+        data.monto, data.monto_yo, data.monto_socio, data.saldo_pendiente,
+        data.saldo_yo, data.saldo_socio, data.monto_luz, data.cotizacion_saldo,
+        data.saldo_pagado, data.fecha_pago_saldo ?? null, data.estado, data.notas,
+      ],
+    );
+    await insertarComprobantesReserva(client, rows[0].id, archivos);
+    return rows[0];
+  });
 }
 
-export async function updateReserva(id: number, data: Omit<Reserva, 'id' | 'created_at'>): Promise<void> {
-  await pool.query(
-    `UPDATE reservas SET huesped=$1, dni=$2, direccion=$3, adultos=$4, ninos=$5, mascotas=$6,
-       fecha_inicio=$7, hora_inicio=$8, fecha_fin=$9, hora_fin=$10, fecha_reserva=$11,
-       plataforma=$12, monto_usd=$13, cotizacion=$14, monto=$15, monto_yo=$16,
-       monto_socio=$17, saldo_pendiente=$18, saldo_yo=$19, saldo_socio=$20,
-       monto_luz=$21, cotizacion_saldo=$22, saldo_pagado=$23, fecha_pago_saldo=$24,
-       estado=$25, notas=$26
-     WHERE id=$27`,
-    [
-      data.huesped, data.dni, data.direccion, data.adultos, data.ninos, data.mascotas,
-      data.fecha_inicio, data.hora_inicio, data.fecha_fin, data.hora_fin,
-      data.fecha_reserva, data.plataforma, data.monto_usd, data.cotizacion,
-      data.monto, data.monto_yo, data.monto_socio, data.saldo_pendiente,
-      data.saldo_yo, data.saldo_socio, data.monto_luz, data.cotizacion_saldo,
-      data.saldo_pagado, data.fecha_pago_saldo ?? null, data.estado, data.notas, id,
-    ],
-  );
+export async function updateReserva(id: number, data: Omit<Reserva, 'id' | 'created_at'>, archivos: ComprobanteReserva[] = []): Promise<void> {
+  return transaccionReserva(archivos, async (client) => {
+    const result = await client.query(
+      `UPDATE reservas SET huesped=$1, dni=$2, direccion=$3, adultos=$4, ninos=$5, mascotas=$6,
+         fecha_inicio=$7, hora_inicio=$8, fecha_fin=$9, hora_fin=$10, fecha_reserva=$11,
+         plataforma=$12, monto_usd=$13, cotizacion=$14, monto=$15, monto_yo=$16,
+         monto_socio=$17, saldo_pendiente=$18, saldo_yo=$19, saldo_socio=$20,
+         monto_luz=$21, cotizacion_saldo=$22, saldo_pagado=$23, fecha_pago_saldo=$24,
+         estado=$25, notas=$26
+       WHERE id=$27`,
+      [
+        data.huesped, data.dni, data.direccion, data.adultos, data.ninos, data.mascotas,
+        data.fecha_inicio, data.hora_inicio, data.fecha_fin, data.hora_fin,
+        data.fecha_reserva, data.plataforma, data.monto_usd, data.cotizacion,
+        data.monto, data.monto_yo, data.monto_socio, data.saldo_pendiente,
+        data.saldo_yo, data.saldo_socio, data.monto_luz, data.cotizacion_saldo,
+        data.saldo_pagado, data.fecha_pago_saldo ?? null, data.estado, data.notas, id,
+      ],
+    );
+    if (!result.rowCount) throw new Error("La reserva ya no existe.");
+    await insertarComprobantesReserva(client, id, archivos);
+  });
 }
 
 export async function deleteReserva(id: number): Promise<void> {
@@ -97,22 +104,74 @@ export async function getGastos(desde?: string, hasta?: string): Promise<Gasto[]
   return rows;
 }
 
-export async function createGasto(data: Omit<Gasto, 'id' | 'created_at'>): Promise<Gasto> {
-  const { rows } = await pool.query<Gasto>(
-    `INSERT INTO gastos (fecha, categoria, subcategoria, descripcion, monto, pagado_por, tipo)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [data.fecha, data.categoria, data.subcategoria, data.descripcion, data.monto, data.pagado_por, data.tipo],
-  );
-  return rows[0];
+export interface ArchivoPago {
+  nombre: string;
+  tipo: string;
+  contenido: Buffer;
 }
 
-export async function updateGasto(id: number, data: Omit<Gasto, 'id' | 'created_at'>): Promise<void> {
-  await pool.query(
-    `UPDATE gastos SET fecha=$1, categoria=$2, subcategoria=$3, descripcion=$4,
-       monto=$5, pagado_por=$6, tipo=$7
-     WHERE id=$8`,
-    [data.fecha, data.categoria, data.subcategoria, data.descripcion, data.monto, data.pagado_por, data.tipo, id],
-  );
+export async function ensurePagos() {
+  await pool.query(`CREATE TABLE IF NOT EXISTS pagos (
+    id BIGSERIAL PRIMARY KEY,
+    gasto_id INTEGER REFERENCES gastos(id) ON DELETE SET NULL,
+    nombre TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    contenido BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+}
+
+export async function getPagos(gastoId?: number) {
+  await ensurePagos();
+  const { rows } = await pool.query<{
+    id: number; gasto_id: number | null; nombre: string; tipo: string;
+    created_at: string; descripcion: string | null; fecha: string | null;
+  }>(`SELECT p.id, p.gasto_id, p.nombre, p.tipo, p.created_at, g.descripcion, g.fecha
+      FROM pagos p LEFT JOIN gastos g ON g.id = p.gasto_id
+      ${gastoId === undefined ? '' : 'WHERE p.gasto_id = $1'}
+      ORDER BY p.created_at DESC, p.id DESC`, gastoId === undefined ? [] : [gastoId]);
+  return rows;
+}
+
+export async function getPago(id: number) {
+  await ensurePagos();
+  const { rows } = await pool.query<ArchivoPago>('SELECT nombre, tipo, contenido FROM pagos WHERE id = $1', [id]);
+  return rows[0] ?? null;
+}
+
+async function guardarGasto(data: Omit<Gasto, 'id' | 'created_at'>, archivo?: ArchivoPago, id?: number): Promise<Gasto> {
+  if (archivo) await ensurePagos();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const values = [data.fecha, data.categoria, data.subcategoria, data.descripcion, data.monto, data.pagado_por, data.tipo];
+    const { rows } = id === undefined
+      ? await client.query<Gasto>(`INSERT INTO gastos (fecha, categoria, subcategoria, descripcion, monto, pagado_por, tipo)
+          VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`, values)
+      : await client.query<Gasto>(`UPDATE gastos SET fecha=$1, categoria=$2, subcategoria=$3, descripcion=$4,
+          monto=$5, pagado_por=$6, tipo=$7 WHERE id=$8 RETURNING *`, [...values, id]);
+    const gasto = rows[0];
+    if (!gasto) throw new Error('El gasto ya no existe.');
+    if (archivo) await client.query(
+      'INSERT INTO pagos (gasto_id, nombre, tipo, contenido) VALUES ($1,$2,$3,$4)',
+      [gasto.id, archivo.nombre, archivo.tipo, archivo.contenido],
+    );
+    await client.query('COMMIT');
+    return gasto;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function createGasto(data: Omit<Gasto, 'id' | 'created_at'>, archivo?: ArchivoPago): Promise<Gasto> {
+  return guardarGasto(data, archivo);
+}
+
+export async function updateGasto(id: number, data: Omit<Gasto, 'id' | 'created_at'>, archivo?: ArchivoPago): Promise<void> {
+  await guardarGasto(data, archivo, id);
 }
 
 export async function deleteGasto(id: number): Promise<void> {
@@ -130,7 +189,8 @@ export async function getSumIngresos(desde: string, hasta: string): Promise<numb
      FROM reservas WHERE estado = 'confirmada'`,
     [desde, hasta],
   );
-  return parseFloat(rows[0].total) || 0;
+  const luz = await getCobrosLuz(desde, hasta);
+  return (parseFloat(rows[0].total) || 0) + luz.reduce((total, cobro) => total + cobro.monto, 0);
 }
 
 export async function getSumIngresosPorSocio(
@@ -148,9 +208,10 @@ export async function getSumIngresosPorSocio(
      FROM reservas WHERE estado = 'confirmada'`,
     [desde, hasta],
   );
+  const luz = await getCobrosLuz(desde, hasta);
   return {
-    yo: parseFloat(rows[0].yo) || 0,
-    socio: parseFloat(rows[0].socio) || 0,
+    yo: (parseFloat(rows[0].yo) || 0) + luz.filter(c => c.cobrado_por === 'yo').reduce((s, c) => s + c.monto, 0),
+    socio: (parseFloat(rows[0].socio) || 0) + luz.filter(c => c.cobrado_por === 'socio').reduce((s, c) => s + c.monto, 0),
   };
 }
 
@@ -195,20 +256,25 @@ export async function marcarSaldoPagado(
   saldoSocio: number,
   cotizacionSaldo: number | null,
   montoLuz: number | null,
+  archivos: ComprobanteReserva[] = [],
 ): Promise<void> {
-  await pool.query(
-    `UPDATE reservas SET
-       saldo_pagado = true,
-       fecha_pago_saldo = $2,
-       saldo_yo = $3,
-       saldo_socio = $4,
-       cotizacion_saldo = $5,
-       monto_luz = $6,
-       saldo_pendiente = $3::numeric + $4::numeric,
-       monto = monto_yo + monto_socio + $3::numeric + $4::numeric
-     WHERE id = $1`,
-    [id, fecha, saldoYo, saldoSocio, cotizacionSaldo, montoLuz],
-  );
+  return transaccionReserva(archivos, async (client) => {
+    const result = await client.query(
+      `UPDATE reservas SET
+         saldo_pagado = true,
+         fecha_pago_saldo = $2,
+         saldo_yo = $3,
+         saldo_socio = $4,
+         cotizacion_saldo = $5,
+         monto_luz = $6,
+         saldo_pendiente = $3::numeric + $4::numeric,
+         monto = monto_yo + monto_socio + $3::numeric + $4::numeric
+       WHERE id = $1`,
+      [id, fecha, saldoYo, saldoSocio, cotizacionSaldo, montoLuz],
+    );
+    if (!result.rowCount) throw new Error("La reserva ya no existe.");
+    await insertarComprobantesReserva(client, id, archivos);
+  });
 }
 
 // ── Consultas ─────────────────────────────────────────────────────────────────
@@ -380,9 +446,120 @@ export async function getAuditLog(filtros: {
   const offset = filtros.offset ?? 0;
   params.push(limit, offset);
   const { rows } = await pool.query<AuditLogEntry>(
-    `SELECT * FROM audit_log ${where} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    `SELECT * FROM audit_log ${where} ORDER BY created_at DESC, id DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params,
   );
 
   return { entries: rows, total: countRows[0].count };
+}
+
+export interface ComprobanteReserva extends ArchivoPago {
+  concepto: 'reserva' | 'saldo';
+}
+
+async function ensureComprobantesReserva() {
+  await pool.query(`CREATE TABLE IF NOT EXISTS comprobantes_reserva (
+    id BIGSERIAL PRIMARY KEY,
+    reserva_id INTEGER NOT NULL REFERENCES reservas(id) ON DELETE CASCADE,
+    concepto TEXT NOT NULL CHECK (concepto IN ('reserva', 'saldo')),
+    nombre TEXT NOT NULL, tipo TEXT NOT NULL, contenido BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+}
+
+async function transaccionReserva<T>(archivos: ComprobanteReserva[], run: (client: PoolClient) => Promise<T>): Promise<T> {
+  if (archivos.length) await ensureComprobantesReserva();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await run(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally { client.release(); }
+}
+
+async function insertarComprobantesReserva(client: PoolClient, id: number, archivos: ComprobanteReserva[]) {
+  for (const archivo of archivos) await client.query(
+    'INSERT INTO comprobantes_reserva (reserva_id, concepto, nombre, tipo, contenido) VALUES ($1,$2,$3,$4,$5)',
+    [id, archivo.concepto, archivo.nombre, archivo.tipo, archivo.contenido],
+  );
+}
+
+export async function getComprobantesReserva(id: number) {
+  await ensureComprobantesReserva();
+  const { rows } = await pool.query<{ id: number; nombre: string; concepto: 'reserva' | 'saldo'; created_at: string }>(
+    'SELECT id, nombre, concepto, created_at FROM comprobantes_reserva WHERE reserva_id = $1 ORDER BY created_at DESC, id DESC', [id],
+  );
+  return rows;
+}
+
+export async function getComprobanteReserva(id: number, reservaId: number) {
+  await ensureComprobantesReserva();
+  const { rows } = await pool.query<ComprobanteReserva>(
+    'SELECT nombre, tipo, contenido, concepto FROM comprobantes_reserva WHERE id = $1 AND reserva_id = $2', [id, reservaId],
+  );
+  return rows[0] ?? null;
+}
+
+export async function addComprobantesReserva(id: number, archivos: ComprobanteReserva[]) {
+  await transaccionReserva(archivos, async client => {
+    await insertarComprobantesReserva(client, id, archivos);
+  });
+}
+
+// Autor de la carga; no confundir con la persona que pagó el gasto.
+export async function getAutoresGastos(): Promise<GastoAutor[]> {
+  const { rows } = await pool.query<GastoAutor>(`
+    SELECT DISTINCT ON (a.entidad_id) a.entidad_id AS gasto_id,
+      a.usuario_id, COALESCE(u.nombre, a.usuario_email) AS nombre,
+      a.created_at AS cargado_el
+    FROM audit_log a LEFT JOIN usuarios u ON u.id = a.usuario_id
+    WHERE a.entidad = 'gasto' AND a.accion = 'crear' AND a.entidad_id IS NOT NULL
+    ORDER BY a.entidad_id, a.created_at ASC, a.id ASC
+  `);
+  return rows;
+}
+
+// La luz cobrada después de la estadía tiene su propia fecha de ingreso.
+// No modifica monto_luz histórico, que ya está incluido en saldo_socio.
+let luzSchema: Promise<unknown> | undefined;
+async function ensureCobrosLuz() {
+  if (!luzSchema) luzSchema = pool.query(`CREATE TABLE IF NOT EXISTS cobros_luz (
+    reserva_id INTEGER PRIMARY KEY REFERENCES reservas(id) ON DELETE CASCADE,
+    monto NUMERIC(14,2) NOT NULL CHECK (monto > 0),
+    fecha DATE NOT NULL,
+    cobrado_por TEXT NOT NULL CHECK (cobrado_por IN ('yo', 'socio'))
+  )`).catch(error => { luzSchema = undefined; throw error; });
+  await luzSchema;
+}
+
+export async function getCobrosLuz(desde?: string, hasta?: string) {
+  await ensureCobrosLuz();
+  const { rows } = await pool.query<import('./types').CobroLuz>(
+    `SELECT l.* FROM cobros_luz l JOIN reservas r ON r.id = l.reserva_id
+     WHERE r.estado = 'confirmada' ${desde && hasta ? 'AND l.fecha >= $1 AND l.fecha <= $2' : ''}`,
+    desde && hasta ? [desde, hasta] : [],
+  );
+  return rows;
+}
+
+export async function guardarCobroLuz(id: number, monto: number, fecha: string, cobradoPor: 'yo' | 'socio') {
+  await ensureCobrosLuz();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query<Reserva>('SELECT * FROM reservas WHERE id = $1 FOR UPDATE', [id]);
+    const reserva = rows[0];
+    if (!reserva || reserva.estado !== 'confirmada') throw new Error('La reserva no existe o no está confirmada.');
+    if (fecha < reserva.fecha_fin) throw new Error('La fecha del cobro de luz debe ser al finalizar la estadía o después.');
+    if (monto === 0) await client.query('DELETE FROM cobros_luz WHERE reserva_id = $1', [id]);
+    else await client.query(`INSERT INTO cobros_luz (reserva_id, monto, fecha, cobrado_por) VALUES ($1,$2,$3,$4)
+      ON CONFLICT (reserva_id) DO UPDATE SET monto = EXCLUDED.monto, fecha = EXCLUDED.fecha, cobrado_por = EXCLUDED.cobrado_por`,
+      [id, monto, fecha, cobradoPor]);
+    await client.query('COMMIT');
+  } catch (error) { await client.query('ROLLBACK'); throw error; }
+  finally { client.release(); }
 }

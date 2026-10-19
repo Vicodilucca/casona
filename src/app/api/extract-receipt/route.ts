@@ -1,30 +1,29 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
-const client = new Anthropic();
+import { requireAuth, tienePermiso } from '@/lib/auth-guard';
+import { leerArchivoPago } from '@/lib/pagos';
+import { errorLecturaComprobante } from '@/lib/receipt-errors';
 
 const CATEGORIAS = ['Limpieza', 'Impuestos', 'Mantenimiento', 'Servicios', 'Otros'];
 
-// Claude soporta jpeg, png, gif, webp — normalizar cualquier otro tipo a jpeg
-function normalizeMediaType(type: string): 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' {
-  if (type === 'image/png')  return 'image/png';
-  if (type === 'image/webp') return 'image/webp';
-  if (type === 'image/gif')  return 'image/gif';
-  return 'image/jpeg'; // jpg, heic, heif, bmp → tratar como jpeg
-}
-
 export async function POST(req: NextRequest) {
   try {
+    const usuario = await requireAuth();
+    if (!tienePermiso(usuario, 'gastos', 'crear') && !tienePermiso(usuario, 'gastos', 'editar')) throw new Error('Sin permiso');
+  } catch {
+    return NextResponse.json({ error: 'No autorizado.' }, { status: 403 });
+  }
+  try {
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-
-    if (!file) {
-      return NextResponse.json({ error: 'No se recibió archivo.' }, { status: 400 });
-    }
-
-    const buffer = await file.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString('base64');
-    const mediaType = normalizeMediaType(file.type ?? '');
+    const archivo = await leerArchivoPago(formData);
+    if (!archivo) return NextResponse.json({ error: 'No se recibió archivo.' }, { status: 400 });
+    if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: 'Lectura automática no disponible.' }, { status: 503 });
+    const client = new Anthropic({ timeout: 20000, maxRetries: 0 });
+    const base64 = archivo.contenido.toString('base64');
+    const documento: Anthropic.Messages.ContentBlockParam = archivo.tipo === 'application/pdf'
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+      : { type: 'image', source: { type: 'base64', media_type: archivo.tipo as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: base64 } };
 
     const hoy = new Date().toISOString().split('T')[0];
 
@@ -35,10 +34,7 @@ export async function POST(req: NextRequest) {
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: base64 },
-            },
+            documento,
             {
               type: 'text',
               text: `Sos un asistente que extrae datos de comprobantes de gastos argentinos.
@@ -85,7 +81,8 @@ Reglas:
     const data = JSON.parse(jsonMatch[0]);
     return NextResponse.json(data);
   } catch (err) {
-    console.error('extract-receipt error:', err);
-    return NextResponse.json({ error: 'Error al procesar el comprobante.' }, { status: 500 });
+    const fallo = errorLecturaComprobante(err);
+    console.error('extract-receipt error:', { status: fallo.status, code: fallo.code });
+    return NextResponse.json({ error: fallo.message, code: fallo.code }, { status: fallo.status });
   }
 }

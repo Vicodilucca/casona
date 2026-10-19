@@ -6,6 +6,7 @@ import {
   ClipboardList, Banknote, Clock3, CheckCircle2, RefreshCw,
 } from 'lucide-react';
 import { agregarReserva, editarReserva } from '@/actions/reservas';
+import ComprobanteInput from '@/components/ComprobanteInput';
 import MontoInput from '@/components/MontoInput';
 import HoraInput from '@/components/HoraInput';
 import { formatARS, getNights } from '@/lib/utils';
@@ -79,6 +80,8 @@ export default function ReservaForm({ initial, onClose }: Props) {
   const [form, setForm] = useState(initial ? toForm(initial) : empty);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState('');
+  const [comprobanteReserva, setComprobanteReserva] = useState<File | null>(null);
+  const [comprobanteSaldo, setComprobanteSaldo] = useState<File | null>(null);
   const [fetchingCotiz, setFetchingCotiz] = useState(false);
   const [editandoSaldo, setEditandoSaldo] = useState(false);
   const [usdManualizado, setUsdManualizado] = useState(!!(initial?.monto_usd));
@@ -228,14 +231,38 @@ export default function ReservaForm({ initial, onClose }: Props) {
     };
 
     startTransition(async () => {
-      if (initial) await editarReserva(initial.id, data);
-      else await agregarReserva(data);
-      onClose();
+      try {
+        if ((comprobanteReserva?.size ?? 0) + (comprobanteSaldo?.size ?? 0) > 3 * 1024 * 1024) {
+          setError('Los comprobantes juntos deben pesar como máximo 3 MB. Podés guardar uno y añadir el otro después desde Editar.');
+          return;
+        }
+        const adjuntos = new FormData();
+        if (comprobanteReserva) adjuntos.set('reserva', comprobanteReserva);
+        if (comprobanteSaldo) adjuntos.set('saldo', comprobanteSaldo);
+        if (initial) await editarReserva(initial.id, data, adjuntos);
+        else await agregarReserva(data, adjuntos);
+        onClose();
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'No se pudo guardar la reserva. Intentá de nuevo.');
+      }
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+
+      <Block icon={<Banknote size={16} />} color="green" title="Comprobantes de transferencia">
+        <ComprobanteInput label="Reserva / seña" value={comprobanteReserva} onChange={setComprobanteReserva} disabled={pending} />
+        <ComprobanteInput label="Pago del saldo" value={comprobanteSaldo} onChange={setComprobanteSaldo} disabled={pending} />
+        <p className="text-xs text-slate-500">Opcionales. Podés añadirlos ahora o después desde Editar. Adjuntar un comprobante no marca el saldo como pagado. Máximo 3 MB entre ambos archivos por guardado.</p>
+        {initial && <a href={`/reservas/${initial.id}/comprobantes`} target="_blank" rel="noreferrer" className="text-sm text-blue-700 underline">Ver comprobantes guardados</a>}
+      </Block>
+
+      {initial && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm space-y-2">
+        <p className="font-semibold text-amber-800">Luz cobrada al finalizar la estadía</p>
+        <p className="text-slate-600">Podés registrar este ingreso aunque la reserva ya esté pagada, con su propia fecha de cobro.</p>
+        <a href={`/reservas/${initial.id}/luz`} target="_blank" rel="noreferrer" className="text-amber-800 underline">Registrar o editar cobro de luz</a>
+      </div>}
 
       {/* ① Fecha de reserva */}
       <Block icon={<CalendarCheck size={16} />} color="blue" title="Fecha de reserva" subtitle="¿Cuándo se realizó la reserva?">
