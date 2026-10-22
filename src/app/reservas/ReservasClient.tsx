@@ -51,7 +51,7 @@ export default function ReservasClient({
   const detalleLuz = (r: Reserva) => {
     const luz = luzPorReserva.get(r.id);
     return <div className="text-xs mt-1 space-y-1">
-      {luz && <p className="text-amber-700">⚡ Luz adicional: {formatARS(luz.monto)} · {formatDate(luz.fecha)} · {luz.cobrado_por === 'yo' ? 'María Victoria' : 'Luis'}</p>}
+      {luz && <p className="text-amber-700">⚡ Luz: {formatARS(luz.monto)}<span className="block font-normal">{formatDate(luz.fecha)}</span></p>}
       {(puedeEditar || puedeSaldo) && r.estado === 'confirmada' && <a href={`/reservas/${r.id}/luz`} className="text-amber-700 underline">{luz ? 'Editar cobro de luz' : 'Registrar cobro de luz'}</a>}
     </div>;
   };
@@ -229,7 +229,6 @@ export default function ReservasClient({
                           tieneSaldo ? 'text-red-700' : estadiaCompleta ? 'text-green-700' : 'text-slate-800'
                         }`}>{r.huesped}</p>
                         <a href={`/reservas/${r.id}/comprobantes`} className="text-xs text-blue-600 underline">Comprobantes</a>
-                        {detalleLuz(r)}
                         {r.dni && <p className="text-xs text-slate-400">DNI {r.dni}</p>}
                         {tieneSaldo && (
                           <p className="text-xs font-semibold text-red-500 mt-0.5">● Saldo pendiente: {formatARS(r.saldo_pendiente ?? 0)}</p>
@@ -291,6 +290,7 @@ export default function ReservasClient({
                             {(r.monto_socio ?? 0) === 0 && (r.saldo_socio ?? 0) === 0 && <span className="text-slate-300">—</span>}
                           </p>
                         )}
+                        {detalleLuz(r)}
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-slate-800">
                         {r.monto_usd != null
@@ -359,7 +359,6 @@ export default function ReservasClient({
                       {r.huesped}
                     </p>
                     <a href={`/reservas/${r.id}/comprobantes`} className="text-xs text-blue-600 underline">Comprobantes de pago</a>
-                    {detalleLuz(r)}
                     {r.dni && <p className="text-xs text-slate-400">DNI {r.dni}</p>}
                     {r.direccion && <p className="text-xs text-slate-400">{r.direccion}</p>}
                   </div>
@@ -414,6 +413,7 @@ export default function ReservasClient({
                         <p className="text-blue-600 font-medium">Cobró Luis · total</p>
                         <p className="text-blue-800 font-bold">{formatARS((r.monto_socio ?? 0) + (r.saldo_socio ?? 0) + luzRecibida(r, 'socio'))}</p>
                         <p className="text-blue-500 mt-0.5">Parcial {formatARS(r.monto_socio ?? 0)} + Saldo {formatARS(r.saldo_socio ?? 0)}</p>
+                        {detalleLuz(r)}
                       </div>
                     </div>
                     {r.fecha_pago_saldo && (
@@ -432,6 +432,7 @@ export default function ReservasClient({
                     <div className="bg-blue-50 rounded-lg px-2 py-1.5">
                       <p className="text-blue-600 font-medium">Cobró Luis</p>
                       <p className="text-blue-800 font-bold">{formatARS((r.monto_socio ?? 0) + luzRecibida(r, 'socio'))}</p>
+                      {detalleLuz(r)}
                     </div>
                   </div>
                 )}
