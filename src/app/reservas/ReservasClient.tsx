@@ -489,7 +489,7 @@ export default function ReservasClient({
 function SaldoToggle({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [comprobante, setComprobante] = useState<File | null>(null);
+  const [comprobante, setComprobante] = useState<File[]>([]);
   const [error, setError] = useState('');
   const hoy = new Date().toISOString().split('T')[0];
   const [fechaCobro, setFechaCobro] = useState(hoy);
@@ -520,10 +520,10 @@ function SaldoToggle({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEdita
     startTransition(async () => {
       try {
         const adjuntos = new FormData();
-        if (comprobante) adjuntos.set('saldo', comprobante);
+        for (const file of comprobante) adjuntos.append('saldo', file);
         await pagarSaldo(r.id, fechaCobro, saldoYoVal, saldoSocioVal, cotizacionVal || null, null, adjuntos);
         setConfirming(false);
-        setComprobante(null);
+        setComprobante([]);
       } catch (error) {
         setError(error instanceof Error ? error.message : 'No se pudo registrar el cobro. Intentá de nuevo.');
       }

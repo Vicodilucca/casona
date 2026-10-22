@@ -5,7 +5,7 @@ import ComprobanteInput from './ComprobanteInput';
 import { adjuntarComprobanteReserva } from '@/actions/reservas';
 
 export default function AdjuntarComprobanteReserva({ reservaId, puedeReserva, puedeSaldo }: { reservaId: number; puedeReserva: boolean; puedeSaldo: boolean }) {
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File[]>([]);
   const [concepto, setConcepto] = useState(puedeReserva ? 'reserva' : 'saldo');
   const [pending, startTransition] = useTransition();
   const [mensaje, setMensaje] = useState('');
@@ -19,14 +19,14 @@ export default function AdjuntarComprobanteReserva({ reservaId, puedeReserva, pu
       </select>
     </label>
     <ComprobanteInput label="Comprobante de transferencia" value={file} onChange={setFile} disabled={pending} />
-    <button type="button" className="btn-primary" disabled={!file || pending} onClick={() => {
+    <button type="button" className="btn-primary" disabled={!file.length || pending} onClick={() => {
       setMensaje('');
       startTransition(async () => {
         try {
           const form = new FormData();
-          if (file) form.set(concepto, file);
+          for (const archivo of file) form.append(concepto, archivo);
           await adjuntarComprobanteReserva(reservaId, form);
-          setFile(null); setMensaje('Comprobante guardado.'); router.refresh();
+          setFile([]); setMensaje('Comprobante guardado.'); router.refresh();
         } catch (error) { setMensaje(error instanceof Error ? error.message : 'No se pudo guardar el comprobante.'); }
       });
     }}>{pending ? 'Guardando…' : 'Guardar comprobante'}</button>

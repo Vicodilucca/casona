@@ -19,6 +19,14 @@ function load(file, customRequire = require) {
   assert.deepEqual(archivos.map(a => a.concepto), ['reserva', 'saldo']);
   assert.equal(archivos[1].tipo, 'image/png');
   assert.deepEqual(await leerComprobantesReserva(), []);
+  const dosTickets = new FormData();
+  dosTickets.append('saldo', new Blob(['%PDF-1.4 transferencia 1']), 'transferencia1.pdf');
+  dosTickets.append('saldo', new Blob(['%PDF-1.4 transferencia 2']), 'transferencia2.pdf');
+  const tickets = await leerComprobantesReserva(dosTickets);
+  assert.deepEqual(tickets.map(a => [a.nombre, a.concepto]), [['transferencia1.pdf', 'saldo'], ['transferencia2.pdf', 'saldo']]);
+  dosTickets.append('saldo', new Blob(['archivo inválido']), 'invalido.pdf');
+  await assert.rejects(() => leerComprobantesReserva(dosTickets));
+
   const invalid = new FormData(); invalid.set('saldo', new Blob(['<html>']), 'saldo.png');
   await assert.rejects(() => leerComprobantesReserva(invalid));
   const large = new FormData();
@@ -37,11 +45,12 @@ function load(file, customRequire = require) {
   for (const save of [
     () => db.createReserva({}, archivos),
     () => db.updateReserva(42, {}, archivos),
-    () => db.marcarSaldoPagado(42, '2026-10-02', 10, 20, null, null, [archivos[1]]),
+    () => db.marcarSaldoPagado(42, '2026-10-02', 10, 20, null, null, tickets),
     () => db.addComprobantesReserva(42, archivos),
   ]) {
     calls = []; fail = false; await save();
     assert(calls.some(c => c.sql === 'COMMIT'));
+    assert.equal(calls.filter(c => c.sql.startsWith('INSERT INTO comprobantes_reserva')).length, 2);
     assert(calls.filter(c => c.sql.startsWith('INSERT INTO comprobantes_reserva')).every(c => c.values[0] === 42));
     calls = []; fail = true; await assert.rejects(save, /storage failed/);
     assert(calls.some(c => c.sql === 'ROLLBACK'));

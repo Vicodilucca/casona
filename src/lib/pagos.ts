@@ -22,12 +22,12 @@ export async function leerArchivoPago(form?: FormData): Promise<ArchivoPago | un
 export async function leerComprobantesReserva(form?: FormData): Promise<ComprobanteReserva[]> {
   const archivos: ComprobanteReserva[] = [];
   for (const concepto of ['reserva', 'saldo'] as const) {
-    const file = form?.get(concepto);
-    if (!file) continue;
-    const adjunto = new FormData();
-    adjunto.set('file', file);
-    const archivo = await leerArchivoPago(adjunto);
-    if (archivo) archivos.push({ ...archivo, concepto });
+    for (const file of form?.getAll(concepto) ?? []) {
+      const adjunto = new FormData();
+      adjunto.set('file', file);
+      const archivo = await leerArchivoPago(adjunto);
+      if (archivo) archivos.push({ ...archivo, concepto });
+    }
   }
   if (archivos.reduce((total, archivo) => total + archivo.contenido.length, 0) > 3 * 1024 * 1024) {
     throw new Error('Los comprobantes juntos deben pesar como máximo 3 MB.');

@@ -48,7 +48,7 @@ export default function SaldoClient({ pendientes, puedeEditar }: { pendientes: R
 function SaldoCard({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [comprobante, setComprobante] = useState<File | null>(null);
+  const [comprobante, setComprobante] = useState<File[]>([]);
   const [error, setError] = useState('');
 
   const hoy = new Date().toISOString().split('T')[0];
@@ -102,10 +102,10 @@ function SaldoCard({ reserva: r, puedeEditar }: { reserva: Reserva; puedeEditar:
     startTransition(async () => {
       try {
         const adjuntos = new FormData();
-        if (comprobante) adjuntos.set('saldo', comprobante);
+        for (const file of comprobante) adjuntos.append('saldo', file);
         await pagarSaldo(r.id, fechaCobro, saldoYoVal, saldoSocioVal + luzSocioVal, cotizacionVal || null, luzSocioVal || null, adjuntos);
         setConfirming(false);
-        setComprobante(null);
+        setComprobante([]);
       } catch (error) {
         setError(error instanceof Error ? error.message : 'No se pudo registrar el cobro. Intentá de nuevo.');
       }

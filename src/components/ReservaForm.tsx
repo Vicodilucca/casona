@@ -80,8 +80,8 @@ export default function ReservaForm({ initial, onClose }: Props) {
   const [form, setForm] = useState(initial ? toForm(initial) : empty);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState('');
-  const [comprobanteReserva, setComprobanteReserva] = useState<File | null>(null);
-  const [comprobanteSaldo, setComprobanteSaldo] = useState<File | null>(null);
+  const [comprobanteReserva, setComprobanteReserva] = useState<File[]>([]);
+  const [comprobanteSaldo, setComprobanteSaldo] = useState<File[]>([]);
   const [fetchingCotiz, setFetchingCotiz] = useState(false);
   const [editandoSaldo, setEditandoSaldo] = useState(false);
   const [usdManualizado, setUsdManualizado] = useState(!!(initial?.monto_usd));
@@ -232,13 +232,13 @@ export default function ReservaForm({ initial, onClose }: Props) {
 
     startTransition(async () => {
       try {
-        if ((comprobanteReserva?.size ?? 0) + (comprobanteSaldo?.size ?? 0) > 3 * 1024 * 1024) {
+        if ([...comprobanteReserva, ...comprobanteSaldo].reduce((total, file) => total + file.size, 0) > 3 * 1024 * 1024) {
           setError('Los comprobantes juntos deben pesar como máximo 3 MB. Podés guardar uno y añadir el otro después desde Editar.');
           return;
         }
         const adjuntos = new FormData();
-        if (comprobanteReserva) adjuntos.set('reserva', comprobanteReserva);
-        if (comprobanteSaldo) adjuntos.set('saldo', comprobanteSaldo);
+        for (const file of comprobanteReserva) adjuntos.append('reserva', file);
+        for (const file of comprobanteSaldo) adjuntos.append('saldo', file);
         if (initial) await editarReserva(initial.id, data, adjuntos);
         else await agregarReserva(data, adjuntos);
         onClose();
@@ -254,7 +254,7 @@ export default function ReservaForm({ initial, onClose }: Props) {
       <Block icon={<Banknote size={16} />} color="green" title="Comprobantes de transferencia">
         <ComprobanteInput label="Reserva / seña" value={comprobanteReserva} onChange={setComprobanteReserva} disabled={pending} />
         <ComprobanteInput label="Pago del saldo" value={comprobanteSaldo} onChange={setComprobanteSaldo} disabled={pending} />
-        <p className="text-xs text-slate-500">Opcionales. Podés añadirlos ahora o después desde Editar. Adjuntar un comprobante no marca el saldo como pagado. Máximo 3 MB entre ambos archivos por guardado.</p>
+        <p className="text-xs text-slate-500">Opcionales. Podés añadirlos ahora o después desde Editar. Adjuntar un comprobante no marca el saldo como pagado. Máximo 3 MB entre todos los archivos por guardado.</p>
         {initial && <a href={`/reservas/${initial.id}/comprobantes`} target="_blank" rel="noreferrer" className="text-sm text-blue-700 underline">Ver comprobantes guardados</a>}
       </Block>
 
