@@ -47,9 +47,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function ResumenPrint({ r }: { r: Reserva }) {
   const dias = getNights(r.fecha_inicio, r.fecha_fin);
   const cobradoParcialARS = (r.monto_yo ?? 0) + (r.monto_socio ?? 0);
-  const cobradoParcialUSD = r.cotizacion && r.cotizacion > 0
-    ? cobradoParcialARS / r.cotizacion
-    : null;
 
   const saldoPendienteARS = r.saldo_pendiente ?? 0;
   const saldoPendienteUSD = saldoPendienteARS > 0 && r.cotizacion && r.cotizacion > 0
@@ -139,11 +136,6 @@ export default function ResumenPrint({ r }: { r: Reserva }) {
               <Row
                 label="Seña abonada"
                 value={fmtARS(cobradoParcialARS)}
-                sub={
-                  cobradoParcialUSD != null && r.cotizacion
-                    ? `≈ ${fmtUSD(cobradoParcialUSD)} · cotización $${fmtCotizacion(r.cotizacion)}/USD`
-                    : undefined
-                }
               />
               {!r.saldo_pagado && saldoPendienteARS > 0 && (
                 <Row
