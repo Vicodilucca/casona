@@ -82,7 +82,11 @@ Reglas:
     return NextResponse.json(data);
   } catch (err) {
     const fallo = errorLecturaComprobante(err);
-    console.error('extract-receipt error:', { status: fallo.status, code: fallo.code });
+    // Solo en los logs del servidor: el motivo real que devolvió el proveedor (sin credenciales).
+    const proveedor = err instanceof Anthropic.APIError
+      ? { status: err.status, tipo: (err.error as { error?: { type?: string } } | undefined)?.error?.type, detalle: err.message.slice(0, 300) }
+      : { detalle: err instanceof Error ? err.message.slice(0, 300) : String(err) };
+    console.error('extract-receipt error:', { status: fallo.status, code: fallo.code, proveedor });
     return NextResponse.json({ error: fallo.message, code: fallo.code }, { status: fallo.status });
   }
 }
