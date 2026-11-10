@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic';
-import { getReservas, getGastos, getSumIngresos, getSumGastos, getReservasSaldoPendiente } from '@/lib/db';
+import { getReservas, getGastos, getSumIngresos, getSumGastos, getReservasSaldoPendiente, getRecordatoriosIngreso } from '@/lib/db';
 import { formatARS, formatDate, getCurrentMonth, getNights } from '@/lib/utils';
 import { getCurrentUser, tienePermiso } from '@/lib/auth-guard';
 import Link from 'next/link';
 import { TrendingUp, TrendingDown, Wallet, CircleDollarSign, ArrowRight } from 'lucide-react';
+import RecordatorioIngresoCard from '@/components/RecordatorioIngresoCard';
 
 export default async function Dashboard() {
   const usuario = await getCurrentUser();
@@ -17,11 +18,12 @@ export default async function Dashboard() {
 
   const { desde, hasta } = getCurrentMonth();
 
-  const [ingresosMes, gastosMes, gastos, saldosPendientes] = await Promise.all([
+  const [ingresosMes, gastosMes, gastos, saldosPendientes, reservasEn2Dias] = await Promise.all([
     puedeReportes ? getSumIngresos(desde, hasta).catch(() => 0) : Promise.resolve(0),
     (puedeReportes || puedeGastos) ? getSumGastos(desde, hasta).catch(() => 0) : Promise.resolve(0),
     puedeGastos ? getGastos().catch(() => []) : Promise.resolve([]),
     puedeSaldo ? getReservasSaldoPendiente().catch(() => []) : Promise.resolve([]),
+    puedeReservas ? getRecordatoriosIngreso(2).catch(() => []) : Promise.resolve([]),
   ]);
 
   const balanceMes = ingresosMes - gastosMes;
@@ -30,9 +32,12 @@ export default async function Dashboard() {
   const hoy = new Date().toISOString().split('T')[0];
   const proximas = puedeReservas
     ? (await getReservas(hoy, '2099-12-31').catch(() => []))
-        .filter((r) => r.estado === 'confirmada' && r.fecha_inicio >= hoy)
+        .filter((r) => r.estado === 'confirmada' && String(r.fecha_inicio).slice(0, 10) >= hoy)
         .slice(0, 4)
     : [];
+
+  const proximaReserva = proximas.length > 0 ? proximas[0] : null;
+
 
   const totalSaldoPendiente = saldosPendientes.reduce(
     (sum, r) => sum + (r.saldo_pendiente ?? 0), 0
@@ -89,6 +94,10 @@ export default async function Dashboard() {
           {sinNadaQueVer ? `Hola, ${usuario.nombre}` : 'Resumen del mes actual'}
         </p>
       </div>
+
+      {puedeReservas && (
+        <RecordatorioIngresoCard reservasEn2Dias={reservasEn2Dias} proximaReserva={proximaReserva} />
+      )}
 
       {sinNadaQueVer && (
         <div className="card p-6 text-center text-slate-500">

@@ -2,6 +2,7 @@ import Image from 'next/image';
 import type { Reserva } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import PrintButton from './PrintButton';
+import ReglamentoSection from './ReglamentoSection';
 
 function fmtARS(n: number) {
   return n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -59,8 +60,8 @@ export default function ResumenPrint({ r }: { r: Reserva }) {
     <div className="min-h-screen bg-slate-50 print:min-h-0 print:bg-white">
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 0; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 1.2cm; }
+          @page { size: A4 portrait; margin: 1cm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
         }
       `}</style>
 
@@ -68,7 +69,7 @@ export default function ResumenPrint({ r }: { r: Reserva }) {
       <PrintButton />
 
       {/* Documento */}
-      <div className="max-w-xl mx-auto px-4 py-8 print:py-0 print:max-w-none print:px-0">
+      <div className="max-w-3xl mx-auto px-4 py-8 print:py-0 print:max-w-none print:px-0">
 
         {/* Encabezado */}
         <div className="mb-6 print:mb-3 flex items-start justify-between">
@@ -93,8 +94,8 @@ export default function ResumenPrint({ r }: { r: Reserva }) {
           </div>
         </div>
 
-        {/* Grilla de secciones — en pantalla apiladas, en print 2 columnas */}
-        <div className="print:grid print:grid-cols-2 print:gap-x-6">
+        {/* Grilla de secciones — en pantalla e impresión en 2 columnas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid print:grid-cols-2 print:gap-x-6">
           <div>
             {/* Datos del huésped */}
             <Section title="Datos del huésped">
@@ -188,6 +189,9 @@ export default function ResumenPrint({ r }: { r: Reserva }) {
             </div>
           </div>
         </div>
+
+        {/* Sección de Reglamento Casona */}
+        <ReglamentoSection />
 
         {/* Pie */}
         <p className="text-center text-xs text-slate-300 mt-6 print:mt-2">

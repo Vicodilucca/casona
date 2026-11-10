@@ -90,6 +90,19 @@ export async function deleteReserva(id: number): Promise<void> {
   await pool.query('DELETE FROM reservas WHERE id = $1', [id]);
 }
 
+export async function getRecordatoriosIngreso(diasMax: number = 2): Promise<Reserva[]> {
+  const { rows } = await pool.query<Reserva>(
+    `SELECT * FROM reservas
+     WHERE estado = 'confirmada'
+       AND fecha_inicio::date >= CURRENT_DATE
+       AND fecha_inicio::date <= (CURRENT_DATE + ($1 || ' days')::interval)::date
+     ORDER BY fecha_inicio ASC, hora_inicio ASC`,
+    [diasMax],
+  );
+  return rows;
+}
+
+
 // ── Gastos ────────────────────────────────────────────────────────────────────
 
 export async function getGastos(desde?: string, hasta?: string): Promise<Gasto[]> {
