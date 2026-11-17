@@ -46,6 +46,9 @@ interface ReportData {
   miPosicionRealAcum: number;
   socioPosicionRealAcum: number;
   saldoAcum: number;
+  miNetoHasta: number;
+  miPosicionRealHasta: number;
+  saldoHasta: number;
 }
 
 export default function ReportesClient({ data }: { data: ReportData }) {
@@ -303,6 +306,39 @@ export default function ReportesClient({ data }: { data: ReportData }) {
                 <p className="text-lg font-bold text-orange-700">
                   Yo le debo a Luis: {formatARS(Math.abs(data.saldo))}
                 </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Liquidación acumulada desde el inicio hasta el final del período */}
+      <div className={`card p-5 border-2 ${data.saldoHasta >= 0 ? 'border-green-200' : 'border-orange-200'}`}>
+        <h3 className="font-semibold text-slate-800 mb-1">Liquidación acumulada entre socios</h3>
+        <p className="text-xs text-slate-500 mb-3">Desde el inicio hasta el {formatDate(data.hasta)}.</p>
+        {data.saldoHasta === 0 ? (
+          <p className="text-green-700 font-semibold">✓ Están al día, no hay saldo acumulado.</p>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-slate-50 rounded-lg p-3">
+                <p className="text-slate-500 text-xs mb-1">Mi neto teórico</p>
+                <p className="font-bold text-blue-700">{formatARS(data.miNetoHasta)}</p>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-3">
+                <p className="text-slate-500 text-xs mb-1">Mi posición real</p>
+                <p className={`font-bold ${data.miPosicionRealHasta >= 0 ? 'text-slate-700' : 'text-red-700'}`}>
+                  {formatARS(data.miPosicionRealHasta)}
+                </p>
+              </div>
+            </div>
+            {data.saldoHasta > 0 ? (
+              <div className="bg-green-50 rounded-xl px-4 py-3">
+                <p className="text-lg font-bold text-green-700">Luis me debe: {formatARS(data.saldoHasta)}</p>
+              </div>
+            ) : (
+              <div className="bg-orange-50 rounded-xl px-4 py-3">
+                <p className="text-lg font-bold text-orange-700">Yo le debo a Luis: {formatARS(Math.abs(data.saldoHasta))}</p>
               </div>
             )}
           </div>

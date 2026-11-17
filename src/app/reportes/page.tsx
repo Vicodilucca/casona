@@ -35,6 +35,7 @@ export default async function ReportesPage({
   const [
     ingresos, gastosTotales, gastosPorPagador, ingresosPorSocio, todasReservas, gastos,
     ingresosAcum, gastosAcum, gastosPorPagadorAcum, ingresosPorSocioAcum,
+    ingresosHasta, gastosHasta, gastosPorPagadorHasta, ingresosPorSocioHasta,
   ] =
     await Promise.all([
       getSumIngresos(desde, hasta),
@@ -47,6 +48,11 @@ export default async function ReportesPage({
       getSumGastos(inicioHistorico, hoy),
       getSumGastosPorPagador(inicioHistorico, hoy),
       getSumIngresosPorSocio(inicioHistorico, hoy),
+      // Liquidación acumulada desde el inicio hasta el final del período analizado
+      getSumIngresos(inicioHistorico, hasta),
+      getSumGastos(inicioHistorico, hasta),
+      getSumGastosPorPagador(inicioHistorico, hasta),
+      getSumIngresosPorSocio(inicioHistorico, hasta),
     ]);
 
   const neto = ingresos - gastosTotales;
@@ -93,6 +99,11 @@ export default async function ReportesPage({
   const socioPosicionRealAcum = ingresosPorSocioAcum.socio - gastosPorPagadorAcum.socio;
   const saldoAcum = miNetoAcum - miPosicionRealAcum;
 
+  // Liquidación acumulada desde el inicio hasta el final del período analizado
+  const miNetoHasta = (ingresosHasta - gastosHasta) * 0.65;
+  const miPosicionRealHasta = ingresosPorSocioHasta.yo - gastosPorPagadorHasta.yo;
+  const saldoHasta = miNetoHasta - miPosicionRealHasta;
+
   const data = {
     desde,
     hasta,
@@ -123,6 +134,9 @@ export default async function ReportesPage({
     miPosicionRealAcum,
     socioPosicionRealAcum,
     saldoAcum,
+    miNetoHasta,
+    miPosicionRealHasta,
+    saldoHasta,
   };
 
   return <ReportesClient data={data} />;
