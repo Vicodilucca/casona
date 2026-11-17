@@ -63,7 +63,7 @@ export default function ReglamentoSection() {
       icon: Bed,
       text: (
         <>
-          Recordá traer <strong>juego de sábanas y toallas</strong> y cuestiones de <strong>aseo personal</strong> (Shampoo, jabón, crema). Todas las camas son simples excepto 2 matrimoniales (de 1,60m y de 1,80m).
+          <span className="text-red-700 font-semibold">Recordá traer juego de sábanas y toallas</span> y cuestiones de <strong>aseo personal</strong> (Shampoo, jabón, crema). Todas las camas son simples excepto 2 matrimoniales (de 1,60m y de 1,80m).
         </>
       ),
     },
