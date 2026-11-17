@@ -176,9 +176,9 @@ export default function ResumenPrint({ r }: { r: Reserva }) {
 
             {/* Información importante */}
             <div className="mb-4 print:mb-3">
-              <h2 className="text-[11px] font-bold tracking-widest text-slate-400 uppercase mb-2">Información importante</h2>
+              <h2 className="text-[11px] font-bold tracking-widest text-red-700 uppercase mb-2">Información importante</h2>
               <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 space-y-1.5 text-xs print:text-[11px] text-slate-700">
-                <p className="text-red-700">• <strong>Recordá traer juegos de sábanas y toallas (camas simples excepto 2 matrimoniales: 1,60 m y 1,80 m) y elementos de aseo personal.</strong></p>
+                <p>• <strong>Recordá traer juegos de sábanas y toallas (camas simples excepto 2 matrimoniales: 1,60 m y 1,80 m) y elementos de aseo personal.</strong></p>
                 <p>• No se permiten fiestas ni pirotecnia.</p>
                 <p>• No se permiten invitados no incluidos en la reserva.</p>
                 <p>• Al ingreso se firma un contrato de alquiler temporario.</p>
